@@ -1,6 +1,5 @@
-WapSnmp
--------
-
+WapSnmp : SNMP client for golang
+--------------------------------
 
 This is an open-source SNMP client library for Go. This allows you to query SNMP servers for any variable, given it's OID (no MIB resolution).
 
@@ -36,3 +35,4 @@ Example:
         }
   }
 
+This library can also be used as a ASN1 BER parser.
