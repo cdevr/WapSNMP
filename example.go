@@ -69,9 +69,6 @@ func DoWalkTestV3(target string) {
 	}
 	defer wsnmp.Close()
 	wsnmp.Discover();
-	fmt.Printf("key=% x\n",wsnmp.privKey);
-	fmt.Printf("ver=%d\n",wsnmp.Version);
-
 	for {
 		    result_oid, val, err := wsnmp.GetNextV3(oid)
 		    if err != nil {
@@ -79,7 +76,6 @@ func DoWalkTestV3(target string) {
 		      return
 		    }
 		    fmt.Printf("GetNext(%v, %v) => %s, %v\n", target, oid, result_oid, val)
-			break;
 
 		    oid = *result_oid
 			if ! oid.Within(oid0) {

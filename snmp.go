@@ -340,7 +340,6 @@ func (w WapSNMP) auth(wholeMsg string ) (string) {
 	h.Reset();
 	io.WriteString(h,k2 + tmp1);
 	msgAuthParam := string(h.Sum(nil)[:12]);
-	fmt.Printf("% x\n",msgAuthParam);
 	return msgAuthParam;
 }
 
@@ -354,7 +353,6 @@ func (w WapSNMP) encrypt(payload string ) (string,string) {
 	binary.Write(buf3, binary.BigEndian, w.aesIV)
 	privParam := string(buf3.Bytes())
 	iv := string(buf.Bytes()) + string(buf2.Bytes()) + privParam
-	fmt.Printf("encrypt iv=% x, privParam=% x\n key=% x\n",iv,privParam,w.privKey);
 
 	// Encrypt
 	encrypted := make([]byte, len(payload))
@@ -383,7 +381,6 @@ func (w WapSNMP) decrypt(payload,privParam string ) string {
 
 // GetNext issues a GETNEXT SNMP request.
 func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
-	fmt.Printf("key=% x\n",w.privKey);
 	msgID := getRandomRequestID()
 	requestID := getRandomRequestID()
 	req, err := EncodeSequence(
@@ -394,14 +391,11 @@ func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
 	if err != nil {
 		panic(err);
 	}
-	fmt.Printf("req=% x\n",req);
 
 	encrypted,privParam := w.encrypt(string(req));
-	fmt.Printf("ereq=% x\n",encrypted);
 
 	v3Header, err:= EncodeSequence([]interface{}{Sequence,w.engineID,
 				int(w.engineBoots),int(w.engineTime),w.user,strings.Repeat("\x00",12),privParam})
-	fmt.Printf("v3header=% x\n",v3Header);
 	if err != nil {
 		panic(err);
 	}
@@ -424,16 +418,17 @@ func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Printf("numRead=%d, % x\n",numRead,response[:numRead]);
 
 	decodedResponse, err := DecodeSequence(response[:numRead])
 	if err != nil {
 		fmt.Printf("Error decoding getNext:%v\n",err);
 		return nil, nil, err
 	}
+	/*
 	for i, val := range decodedResponse{
 		fmt.Printf("Resp:%v:type=%v\n",i,reflect.TypeOf(val));
 	}
+	*/
 
 	v3HeaderStr := decodedResponse[3].(string);
 	v3HeaderDecoded, err := DecodeSequence([]byte(v3HeaderStr))
@@ -441,10 +436,6 @@ func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
 		fmt.Printf("Error 2 decoding:%v\n",err);
 		return nil, nil, err
 	}
-	for i, val := range v3HeaderDecoded{
-		fmt.Printf("v3Header: %v:type=%v\n",i,reflect.TypeOf(val));
-	}
-
 
 	w.engineID=v3HeaderDecoded[1].(string)
 	w.engineBoots=int32(v3HeaderDecoded[2].(int))
@@ -459,9 +450,6 @@ func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
 	if err != nil {
 		fmt.Printf("Error 3 decoding:%v\n",err);
 		return nil, nil, err
-	}
-	for i, val := range pduDecoded{
-		fmt.Printf("%v:type=%v\n",i,reflect.TypeOf(val));
 	}
 
 	// Find the varbinds
