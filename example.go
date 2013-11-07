@@ -62,7 +62,9 @@ func DoWalkTestV3(target string) {
 	oid0 := oid;
 
 	fmt.Printf("Contacting %v using SNMP v3\n", target)
-	wsnmp, err := NewWapSNMPv3(target, "tzhang","1234567890","1234567890", 2*time.Second, 2)
+	//wsnmp, err := NewWapSNMPv3(target, "tzhang",SNMP_SHA1,"1234567890",SNMP_AES,"1234567890", 2*time.Second, 2)
+	//wsnmp, err := NewWapSNMPv3(target, "tzhang_ma",SNMP_MD5,"1234567890",SNMP_AES,"1234567890", 2*time.Second, 2)
+	wsnmp, err := NewWapSNMPv3(target, "tzhang_md",SNMP_MD5,"1234567890",SNMP_DES,"1234567890", 2*time.Second, 2)
 	if err != nil {
 		fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
 		return

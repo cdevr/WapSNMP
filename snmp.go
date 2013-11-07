@@ -11,6 +11,7 @@ import (
     "crypto/md5"
     "crypto/sha1"
 	"crypto/aes"
+	"crypto/des"
 	"crypto/cipher"
     "reflect"
 	"strings"
@@ -28,7 +29,9 @@ type WapSNMP struct {
 	conn      net.Conn      // Cache the UDP connection in the object.
 	//SNMP V3 variables
 	user      string
+	authAlg   string //MD5 or SHA1
 	authPwd   string
+	privAlg   string //AES or DES
 	privPwd   string
 	engineID  string
 	//V3 temp variables
@@ -42,7 +45,11 @@ type WapSNMP struct {
 
 const (
 	bufSize int = 16384
-	maxMsgSize int = 65000
+	maxMsgSize int = 65500
+	SNMP_AES  string = "AES"
+	SNMP_DES  string = "DES"
+	SNMP_SHA1 string = "SHA1"
+	SNMP_MD5  string = "MD5"
 )
 
 
@@ -94,7 +101,14 @@ func NewWapSNMP(target, community string, version SNMPVersion, timeout time.Dura
 	}, nil
 }
 
-func NewWapSNMPv3(target, user, authPwd, privPwd string,  timeout time.Duration, retries int) (*WapSNMP, error) {
+func NewWapSNMPv3(target, user, authAlg, authPwd, privAlg, privPwd string,  timeout time.Duration, retries int) (*WapSNMP, error) {
+	if authAlg != SNMP_MD5 && authAlg != SNMP_SHA1 {
+		return nil, fmt.Errorf(`Invalid auth algorithm %s, needs SHA1 or MD5`, authAlg)
+	}
+	if privAlg != SNMP_AES && privAlg != SNMP_DES {
+		return nil, fmt.Errorf(`Invalid priv algorithm %s, needs AES or DES`, privAlg)
+	}
+
 	targetPort := fmt.Sprintf("%s:161", target)
 	conn, err := net.DialTimeout("udp", targetPort, timeout)
 	if err != nil {
@@ -107,10 +121,11 @@ func NewWapSNMPv3(target, user, authPwd, privPwd string,  timeout time.Duration,
 		retries: retries,
 		conn: conn,
 		user: user,
+		authAlg: authAlg,
 		authPwd: authPwd,
+		privAlg: privAlg,
 		privPwd: privPwd,
 	}, nil
-
 }
 
 /* NewWapSNMPOnConn creates a new WapSNMP object from an existing net.Conn.
@@ -234,6 +249,9 @@ func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
 	return result, nil
 }
 
+/* SNMP V3 requires a discover packet being sent before a request being sent,
+   so that agent's engineID and other parameters can be automatically detected
+*/
 func (w *WapSNMP) Discover() (error) {
 	msgID := getRandomRequestID()
 	requestID := getRandomRequestID()
@@ -247,7 +265,8 @@ func (w *WapSNMP) Discover() (error) {
 		[]interface{}{Sequence, "", "",
 			[]interface{}{AsnGetRequest, requestID, 0, 0, []interface{}{Sequence} }}})
 	if err != nil {
-		return err
+		fmt.Printf("Error encoding in discover:%v\n",err);
+		panic(err);
 	}
 
 	response := make([]byte, bufSize)
@@ -255,7 +274,6 @@ func (w *WapSNMP) Discover() (error) {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("numRead=%d\n",numRead);
 
 	decodedResponse, err := DecodeSequence(response[:numRead])
 	if err != nil {
@@ -264,34 +282,44 @@ func (w *WapSNMP) Discover() (error) {
 	}
 
 	v3HeaderStr := decodedResponse[3].(string);
-	if false {
-		for i, val := range decodedResponse{
-			fmt.Printf("%v:type=%v\n",i,reflect.TypeOf(val));
-		}
-	}
-
 	v3HeaderDecoded, err := DecodeSequence([]byte(v3HeaderStr))
 	if err != nil {
 		fmt.Printf("Error 2 decoding:%v\n",err);
 		return err
 	}
 
-	if false {
-		for i, val := range v3HeaderDecoded{
-			fmt.Printf("%v:type=%v\n",i,reflect.TypeOf(val))
-		}
-	}
-
 	w.engineID=v3HeaderDecoded[1].(string);
 	w.engineBoots=int32(v3HeaderDecoded[2].(int));
 	w.engineTime=int32(v3HeaderDecoded[3].(int));
 	w.aesIV=rand.Int63();
+	w.desIV=rand.Uint32();
 	//keys
-	w.authKey = password_to_key(w.authPwd, w.engineID , "SHA1");
-	privKey := password_to_key(w.privPwd, w.engineID , "SHA1");
+	w.authKey = password_to_key(w.authPwd, w.engineID , w.authAlg);
+	privKey := password_to_key(w.privPwd, w.engineID , w.authAlg);
 	w.privKey = string(([]byte(privKey))[0:16])
 	return  nil
 }
+
+func EncryptDESCBC(dst, src, key, iv []byte) error {
+	desBlockEncrypter, err := des.NewCipher([]byte(key))
+	if err != nil {
+		return err
+	}
+	desEncrypter := cipher.NewCBCEncrypter(desBlockEncrypter, iv)
+	desEncrypter.CryptBlocks(dst, src)
+	return nil
+}
+
+func DecryptDESCBC(dst, src, key, iv []byte) error {
+	desBlockEncrypter, err := des.NewCipher([]byte(key))
+	if err != nil {
+		return err
+	}
+	desDecrypter := cipher.NewCBCDecrypter(desBlockEncrypter, iv)
+	desDecrypter.CryptBlocks(dst, src)
+	return nil
+}
+
 
 func EncryptAESCFB(dst, src, key, iv []byte) error {
 	aesBlockEncrypter, err := aes.NewCipher([]byte(key))
@@ -335,6 +363,9 @@ func (w WapSNMP) auth(wholeMsg string ) (string) {
 	k1 := strXor(eAuthKey,ipad);
 	k2 := strXor(eAuthKey,opad);
 	h := sha1.New()
+	if w.authAlg == "MD5" {
+		h = md5.New()
+	}
 	io.WriteString(h,k1 + wholeMsg);
 	tmp1 := string(h.Sum(nil));
 	h.Reset();
@@ -346,37 +377,74 @@ func (w WapSNMP) auth(wholeMsg string ) (string) {
 func (w WapSNMP) encrypt(payload string ) (string,string) {
 	buf := new(bytes.Buffer);
 	binary.Write(buf, binary.BigEndian, w.engineBoots)
-	buf2 := new(bytes.Buffer);
-	binary.Write(buf2, binary.BigEndian, w.engineTime)
-	buf3 := new(bytes.Buffer);
-	w.aesIV+=1;
-	binary.Write(buf3, binary.BigEndian, w.aesIV)
-	privParam := string(buf3.Bytes())
-	iv := string(buf.Bytes()) + string(buf2.Bytes()) + privParam
+	if w.privAlg == SNMP_AES {
+		buf2 := new(bytes.Buffer);
+		binary.Write(buf2, binary.BigEndian, w.engineTime)
+		buf3 := new(bytes.Buffer);
+		w.aesIV+=1;
+		binary.Write(buf3, binary.BigEndian, w.aesIV)
+		privParam := string(buf3.Bytes())
+		iv := string(buf.Bytes()) + string(buf2.Bytes()) + privParam
 
-	// Encrypt
-	encrypted := make([]byte, len(payload))
-	err := EncryptAESCFB(encrypted, []byte(payload), []byte(w.privKey), []byte(iv))
-	if err != nil {
-		panic(err)
+		// AES Encrypt
+		encrypted := make([]byte, len(payload))
+		err := EncryptAESCFB(encrypted, []byte(payload), []byte(w.privKey), []byte(iv))
+		if err != nil {
+			panic(err)
+		}
+		return string(encrypted),privParam;
+	}else{
+		desKey:= w.privKey[:8]
+		preIV := w.privKey[8:16]
+		buf2 := new(bytes.Buffer);
+		w.desIV+=1;
+		binary.Write(buf2, binary.BigEndian, w.desIV)
+		privParam := string(buf.Bytes()) + string(buf2.Bytes())
+		iv := strXor(preIV,privParam);
+
+		//DES Encrypt
+		plen:=len(payload);
+		//padding
+		if (plen % 8) != 0 {
+			payload = payload + strings.Repeat("\x00",8-(plen%8));
+		}
+		encrypted := make([]byte, len(payload))
+		EncryptDESCBC(encrypted, []byte(payload), []byte(desKey), []byte(iv))
+		return string(encrypted),privParam;
 	}
-	return string(encrypted),privParam;
 }
 
 func (w WapSNMP) decrypt(payload,privParam string ) string {
 	buf := new(bytes.Buffer);
 	binary.Write(buf, binary.BigEndian, w.engineBoots)
-	buf2 := new(bytes.Buffer);
-	binary.Write(buf2, binary.BigEndian, w.engineTime)
-	iv := string(buf.Bytes()) + string(buf2.Bytes()) + privParam
 
-	// Decrypt
-	decrypted := make([]byte, len(payload))
-	err := DecryptAESCFB(decrypted, []byte(payload), []byte(w.privKey), []byte(iv))
-	if err != nil {
-		panic(err)
+	if w.privAlg == SNMP_AES {
+		buf2 := new(bytes.Buffer);
+		binary.Write(buf2, binary.BigEndian, w.engineTime)
+		iv := string(buf.Bytes()) + string(buf2.Bytes()) + privParam
+
+		// Decrypt
+		decrypted := make([]byte, len(payload))
+		err := DecryptAESCFB(decrypted, []byte(payload), []byte(w.privKey), []byte(iv))
+		if err != nil {
+			panic(err)
+		}
+		return string(decrypted);
+	}else{
+		desKey:= w.privKey[:8]
+		preIV := w.privKey[8:16]
+		iv := strXor(preIV,privParam);
+
+		//DES Decrypt
+		plen:=len(payload);
+		if (plen % 8) != 0 {
+			panic("DES encrypted payload is not multiple of 8 bytes\n");
+		}
+		decrypted := make([]byte, len(payload))
+		DecryptDESCBC(decrypted, []byte(payload), []byte(desKey), []byte(iv))
+		return string(decrypted);
 	}
-	return string(decrypted);
+
 }
 
 // GetNext issues a GETNEXT SNMP request.
@@ -440,8 +508,13 @@ func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
 	w.engineID=v3HeaderDecoded[1].(string)
 	w.engineBoots=int32(v3HeaderDecoded[2].(int))
 	w.engineTime=int32(v3HeaderDecoded[3].(int))
-	//respAuthParam := v3HeaderDecoded[5].(string)
+	// skip checking authParam for now 
+	respAuthParam := v3HeaderDecoded[5].(string)
 	respPrivParam := v3HeaderDecoded[6].(string)
+
+	if len(respAuthParam) == 0 || len(respPrivParam) == 0 {
+		return nil, nil, fmt.Errorf("Error,response is not encrypted.")
+	}
 
 	encryptedResp := decodedResponse[4].(string);
 	plainResp := w.decrypt(encryptedResp,respPrivParam);
