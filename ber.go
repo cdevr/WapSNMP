@@ -69,7 +69,12 @@ const (
 	AsnGetRequest     BERType = 0xa0
 	AsnGetNextRequest BERType = 0xa1
 	AsnGetResponse    BERType = 0xa2
+	AsnSetRequest     BERType = 0xa3
+	AsnTrap			  BERType = 0xa4
 	AsnGetBulkRequest BERType = 0xa5
+	AsnInform         BERType = 0xa6
+	AsnTrap2		  BERType = 0xa7
+	AsnReport		  BERType = 0xa8
 )
 
 // Type to indicate which SNMP version is in use.
@@ -79,6 +84,7 @@ type SNMPVersion uint8
 const (
 	SNMPv1  SNMPVersion = 0
 	SNMPv2c SNMPVersion = 1
+	SNMPv3  SNMPVersion = 3
 )
 
 // EncodeLength encodes an integer value as a BER compliant length value.
@@ -155,20 +161,22 @@ func DecodeInteger(toparse []byte) (int, error) {
 
 // EncodeInteger encodes an integer to BER format.
 func EncodeInteger(toEncode int) []byte {
-	// Calculate the length we'll need for the encoded value.
-	l := 1
+	if toEncode==0 {
+		return []byte{0};
+	}
+	result := make([]byte, 8)
+	pos := 7
 	i := toEncode
-	for i > 255 {
+	for i > 0{
+		result[pos]=byte(i%256);
 		i = i >> 8
-		l++
+		pos--;
 	}
-
-	// Now create a byte array of the correct length and copy the value into it.
-	result := make([]byte, l)
-	for i = 0; i < l; i++ {
-		result[i] = byte(toEncode >> uint(8*(l-i-1)))
+	if (result[pos+1]>=0x80){
+		result[pos]=0x00;
+		pos--;
 	}
-	return result
+	return result[pos+1:8];
 }
 
 // DecodeSequence decodes BER binary data into into *[]interface{}.
@@ -227,7 +235,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, *oid)
-		case Gauge32:
+		case Gauge32,Counter32:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
 				return nil, err
@@ -245,7 +253,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, pdu)
-		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse:
+		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnReport:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
 				return nil, err

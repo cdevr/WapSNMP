@@ -30,31 +30,20 @@ func DoGetTableTest(target string) {
 }
 
 func DoWalkTest(target string) {
-	community := "public"
+	community := "monitorhcm"
 	version := SNMPv2c
 
-	oid := MustParseOid(".1.3.6.1.2.1")
+	oid := MustParseOid(".1.3.6.1.2.1.1")
+	oid0 := oid;
 
 	fmt.Printf("Contacting %v %v %v\n", target, community, version)
 	wsnmp, err := NewWapSNMP(target, community, version, 2*time.Second, 5)
-	defer wsnmp.Close()
 	if err != nil {
 		fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
 		return
 	}
 	defer wsnmp.Close()
 	for {
-		results, err := wsnmp.GetBulk(oid, 50)
-		if err != nil {
-			fmt.Printf("GetBulk error => %v\n", err)
-			return
-		}
-		for o, v := range results {
-			fmt.Printf("%v => %v\n", o, v)
-
-			oid = MustParseOid(o)
-		}
-		/*  Old version without GETBULK
 		    result_oid, val, err := wsnmp.GetNext(oid)
 		    if err != nil {
 		      fmt.Printf("GetNext error => %v\n", err)
@@ -62,7 +51,40 @@ func DoWalkTest(target string) {
 		    }
 		    fmt.Printf("GetNext(%v, %v, %v, %v) => %s, %v\n", target, community, version, oid, result_oid, val)
 		    oid = *result_oid
-		*/
+			if ! oid.Within(oid0) {
+				break;
+			}
+	}
+}
+
+func DoWalkTestV3(target string) {
+	oid := MustParseOid(".1.3.6.1.2.1.1")
+	oid0 := oid;
+
+	fmt.Printf("Contacting %v using SNMP v3\n", target)
+	wsnmp, err := NewWapSNMPv3(target, "tzhang","1234567890","1234567890", 2*time.Second, 2)
+	if err != nil {
+		fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
+		return
+	}
+	defer wsnmp.Close()
+	wsnmp.Discover();
+	fmt.Printf("key=% x\n",wsnmp.privKey);
+	fmt.Printf("ver=%d\n",wsnmp.Version);
+
+	for {
+		    result_oid, val, err := wsnmp.GetNextV3(oid)
+		    if err != nil {
+		      fmt.Printf("GetNext error => %v\n", err)
+		      return
+		    }
+		    fmt.Printf("GetNext(%v, %v) => %s, %v\n", target, oid, result_oid, val)
+			break;
+
+		    oid = *result_oid
+			if ! oid.Within(oid0) {
+				break;
+			}
 	}
 }
 
@@ -93,3 +115,5 @@ func DoGetTest(target string) {
 		fmt.Printf("Get(%v, %v, %v, %v) => %v\n", target, community, version, oid, val)
 	}
 }
+
+
