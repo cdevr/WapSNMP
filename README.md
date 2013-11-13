@@ -1,6 +1,8 @@
 WapSnmp : SNMP client for golang
 --------------------------------
 
+# This fork seeks to add SNMP V3 capability 
+# Original README
 This is an open-source SNMP client library for Go. This allows you to query SNMP servers for any variable, given it's OID (no MIB resolution).
 
 This library has been written to be in Go style and that means it should be very resistent to all conditions. It's entirely non-blocking/asynchronous and very, very fast. It's also surprisingly small and easy to understand.
