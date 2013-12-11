@@ -28,6 +28,18 @@ import (
 // Constants for the Type of the TLV field.
 type BERType uint8
 
+// Type to distinguish Counter32 from just an int
+type Counter int
+
+// Type to distinguish Gauge32 from just an int
+type Gauge int
+
+// Type to distinguish Counter64 from just an int
+type Counter64 int
+
+// Type to distinguish Gauge64 from just an int
+type Gauge64 int
+
 // Constants for the different types of the TLV fields.
 const (
 	AsnBoolean     BERType = 0x01
@@ -57,14 +69,14 @@ const (
 	UOid        BERType = AsnUniversal | 0x06
 	Sequence    BERType = AsnConstructor | 0x10
 
-	Ipaddress BERType = AsnApplication | 0x00
-	Counter   BERType = AsnApplication | 0x01
-	Counter32 BERType = AsnApplication | 0x01
-	Gauge     BERType = AsnApplication | 0x02
-	Gauge32   BERType = AsnApplication | 0x02
-	Timeticks BERType = AsnApplication | 0x03
-	Opaque    BERType = AsnApplication | 0x04
-	Counter64 BERType = AsnApplication | 0x06
+	AsnIpaddress BERType = AsnApplication | 0x00
+	AsnCounter   BERType = AsnApplication | 0x01
+	AsnCounter32 BERType = AsnApplication | 0x01
+	AsnGauge     BERType = AsnApplication | 0x02
+	AsnGauge32   BERType = AsnApplication | 0x02
+	AsnTimeticks BERType = AsnApplication | 0x03
+	Opaque       BERType = AsnApplication | 0x04
+	AsnCounter64 BERType = AsnApplication | 0x06
 
 	AsnGetRequest     BERType = 0xa0
 	AsnGetNextRequest BERType = 0xa1
@@ -227,13 +239,19 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, *oid)
-		case Gauge32:
+		case AsnCounter32:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, val)
-		case Timeticks:
+			result = append(result, Counter(val))
+		case AsnGauge32:
+			val, err := DecodeInteger(berValue)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, Gauge(val))
+		case AsnTimeticks:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
 				return nil, err
@@ -284,6 +302,22 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 			enc := EncodeInteger(val)
 			// TODO encode length ?
 			toEncap = append(toEncap, byte(AsnInteger))
+			toEncap = append(toEncap, byte(len(enc)))
+			for _, b := range enc {
+				toEncap = append(toEncap, b)
+			}
+		case Counter:
+			enc := EncodeInteger(int(val))
+			// TODO encode length ?
+			toEncap = append(toEncap, byte(AsnCounter32))
+			toEncap = append(toEncap, byte(len(enc)))
+			for _, b := range enc {
+				toEncap = append(toEncap, b)
+			}
+		case Gauge:
+			enc := EncodeInteger(int(val))
+			// TODO encode length ?
+			toEncap = append(toEncap, byte(AsnGauge32))
 			toEncap = append(toEncap, byte(len(enc)))
 			for _, b := range enc {
 				toEncap = append(toEncap, b)
