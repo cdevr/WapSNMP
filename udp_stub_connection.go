@@ -16,7 +16,7 @@ type expectAndRespond struct {
 /* A udpStub is a UDP stubbing tool.
 
    You test UDP programs by using
-   
+
    NewUdpStub().Expect("aabbcc").andReturn([]string("ddeeff")
 
    This will return a net.Conn that will simulate receiving a "ddeeff"
