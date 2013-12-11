@@ -11,28 +11,28 @@ It has been tested on juniper and cisco devices and has proven to remain stable 
 
 Example:
 
-  func DoGetTableTest(target string) {
-        community := "public"
-        version := SNMPv2c
+    func DoGetTableTest(target string) {
+          community := "public"
+          version := SNMPv2c
 
-        oid := MustParseOid(".1.3.6.1.4.1.2636.3.2.3.1.20")
+          oid := MustParseOid(".1.3.6.1.4.1.2636.3.2.3.1.20")
 
-        fmt.Printf("Contacting %v %v %v\n", target, community, version)
-        wsnmp, err := NewWapSNMP(target, community, version, 2*time.Second, 5)
-        defer wsnmp.Close()
-        if err != nil {
-                fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
-                return
-        }
+          fmt.Printf("Contacting %v %v %v\n", target, community, version)
+          wsnmp, err := NewWapSNMP(target, community, version, 2*time.Second, 5)
+          defer wsnmp.Close()
+          if err != nil {
+                  fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
+                  return
+          }
 
-        table, err := wsnmp.GetTable(oid)
-        if err != nil {
-                fmt.Printf("Error getting table => %v\n", wsnmp)
-                return
-        }
-        for k, v := range table {
-                fmt.Printf("%v => %v\n", k, v)
-        }
-  }
+          table, err := wsnmp.GetTable(oid)
+          if err != nil {
+                  fmt.Printf("Error getting table => %v\n", wsnmp)
+                  return
+          }
+          for k, v := range table {
+                  fmt.Printf("%v => %v\n", k, v)
+          }
+    }
 
 This library can also be used as a ASN1 BER parser.
