@@ -98,8 +98,13 @@ func (o Oid) Encode() ([]byte, error) {
 	}
 	/* Every o is supposed to start with .1.3, which is encoded as
 	   40 * first_byte + second byte. First_byte is ALWAYS 1, second
-	   byte is always 3, so it's 43, or hex 0x2b */
-	result = append(result, 0x2b)
+	   byte is often 3, so it's 43, or hex 0x2b if the second byte
+	   if 0 for some OIDs, its hex 0x28 */
+	if o[1] == 0 {
+		result = append(result, 0x28)
+	} else {
+		result = append(result, 0x2b)
+	}
 	for i := 2; i < len(o); i++ {
 		val := o[i]
 
