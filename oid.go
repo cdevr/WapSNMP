@@ -96,10 +96,10 @@ func (o Oid) Encode() ([]byte, error) {
 	if o[0] != 1 || o[1] != 3 {
 		return nil, errors.New("oid didn't start with .1.3")
 	}
-	/* Every o is supposed to start with .1.3, which is encoded as
-	   40 * first_byte + second byte. First_byte is ALWAYS 1, second
-	   byte is always 3, so it's 43, or hex 0x2b */
-	result = append(result, 0x2b)
+	/* Every o is supposed to start with 40 * first_byte + second 
+	   byte */
+	start := (40 * o[0]) + o[1]
+	result = append(result, byte(start))
 	for i := 2; i < len(o); i++ {
 		val := o[i]
 
