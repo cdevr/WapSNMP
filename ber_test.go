@@ -137,3 +137,10 @@ func TestSequenceDecoding(t *testing.T) {
 		}
 	}
 }
+
+func TestDecodeNoSuchInstance(t *testing.T) {
+	_, err := DecodeSequence([]byte{0x30, 0x0b, 0x06, 0x07, 0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x03, 0x81, 0x00})
+	if err == nil {
+		t.Error("Error not reported as expected")
+	}
+}
