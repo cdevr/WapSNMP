@@ -82,6 +82,9 @@ const (
 	AsnGetNextRequest BERType = 0xa1
 	AsnGetResponse    BERType = 0xa2
 	AsnGetBulkRequest BERType = 0xa5
+
+	NoSuchInstance BERType = 0x81
+	EndOfMibView   BERType = 0x82
 )
 
 // Type to indicate which SNMP version is in use.
@@ -269,6 +272,10 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, pdu)
+		case NoSuchInstance:
+			return nil, fmt.Errorf("No such instance. Received bytes: %v", toparse)
+		case EndOfMibView:
+			return nil, fmt.Errorf("End of mib view. Received bytes: %v", toparse)
 		default:
 			return nil, fmt.Errorf("did not understand type %v", berType)
 		}
