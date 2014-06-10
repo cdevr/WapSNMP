@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func DoGetTableTest(target string) {
+func doGetTableTest(target string) {
 	community := "public"
 	version := SNMPv2c
 
@@ -29,7 +29,7 @@ func DoGetTableTest(target string) {
 	}
 }
 
-func DoWalkTest(target string) {
+func doWalkTest(target string) {
 	community := "public"
 	version := SNMPv2c
 
@@ -54,19 +54,10 @@ func DoWalkTest(target string) {
 
 			oid = MustParseOid(o)
 		}
-		/*  Old version without GETBULK
-		    result_oid, val, err := wsnmp.GetNext(oid)
-		    if err != nil {
-		      fmt.Printf("GetNext error => %v\n", err)
-		      return
-		    }
-		    fmt.Printf("GetNext(%v, %v, %v, %v) => %s, %v\n", target, community, version, oid, result_oid, val)
-		    oid = *result_oid
-		*/
 	}
 }
 
-func DoGetTest(target string) {
+func doGetTest(target string) {
 	community := "public"
 	version := SNMPv2c
 
