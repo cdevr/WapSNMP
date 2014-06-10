@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"google3/experimental/users/cde/wapSnmp/wapSnmp"
+	"github.com/cdevr/WapSNMP"
 	"time"
 )
 
@@ -13,8 +13,8 @@ var community = flag.String("community", "", "The community to use")
 var timeout = flag.Duration("timeout", 2*time.Second, "timeout for packets")
 var retries = flag.Int("retries", 5, "how many times to retry sending a packet before giving up")
 
-var oid_string = ".1.3.6.1.4.1.2636.3.2.5.1.30"
-var oid = wapSnmp.MustParseOid(oid_string)
+var oidasstring = ".1.3.6.1.4.1.2636.3.2.5.1.30"
+var oid = wapSnmp.MustParseOid(oidasstring)
 
 func decodeOidToLSPName(lspOid wapSnmp.Oid) (*string, error) {
 	if !lspOid.Within(oid) {
@@ -30,10 +30,10 @@ func decodeOidToLSPName(lspOid wapSnmp.Oid) (*string, error) {
 	return &result, nil
 }
 
-func DoGetRROs() {
+func doGetRROs() {
 	flag.Parse()
 
-	fmt.Printf("target=%v\ncommunity=%v\noid=%v\n", *target, *community, oid_string)
+	fmt.Printf("target=%v\ncommunity=%v\noid=%v\n", *target, *community, oidasstring)
 	version := wapSnmp.SNMPv2c
 
 	fmt.Printf("Contacting %v %v %v\n", *target, *community, version)
@@ -60,5 +60,5 @@ func DoGetRROs() {
 }
 
 func main() {
-	DoGetRROs()
+	doGetRROs()
 }

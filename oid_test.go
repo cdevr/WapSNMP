@@ -25,7 +25,7 @@ func TestParseOid(t *testing.T) {
 	for _, test := range tests {
 		oid, err := ParseOid(test.ToParse)
 		if (err != nil) != test.ExpectFail {
-			t.Errorf("ParseOid '%s' got error '%s', expected '%s'", test.ToParse, err, test.ExpectFail)
+			t.Errorf("ParseOid '%s' got error '%s', expected '%t'", test.ToParse, err, test.ExpectFail)
 		}
 		if !test.ExpectFail {
 			if fmt.Sprintf("%s", oid) != test.ExpectedCanonForm {

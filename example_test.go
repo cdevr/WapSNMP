@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-func DoGetTableTest(target string) {
+func ExampleWapSNMP_GetTable() {
+	target := "1.2.3.4"
 	community := "public"
 	version := SNMPv2c
 
@@ -29,7 +30,8 @@ func DoGetTableTest(target string) {
 	}
 }
 
-func DoWalkTest(target string) {
+func ExampleWapSNMP_GetBulk() {
+	target := "1.2.3.4"
 	community := "public"
 	version := SNMPv2c
 
@@ -66,7 +68,8 @@ func DoWalkTest(target string) {
 	}
 }
 
-func DoGetTest(target string) {
+func ExampleWapSNMP_Get() {
+	target := "1.2.3.4"
 	community := "public"
 	version := SNMPv2c
 

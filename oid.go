@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// The SNMP object identifier type.
+// Oid is the SNMP object identifier type.
 type Oid []int
 
 // String returns the string representation for this oid object.
@@ -96,14 +96,14 @@ func (o Oid) Encode() ([]byte, error) {
 	if o[0] != 1 || o[1] != 3 {
 		return nil, errors.New("oid didn't start with .1.3")
 	}
-	/* Every o is supposed to start with 40 * first_byte + second 
+	/* Every o is supposed to start with 40 * first_byte + second
 	   byte */
 	start := (40 * o[0]) + o[1]
 	result = append(result, byte(start))
 	for i := 2; i < len(o); i++ {
 		val := o[i]
 
-		toadd := make([]int, 0)
+		var toadd []int
 		if val == 0 {
 			toadd = append(toadd, 0)
 		}
@@ -131,9 +131,9 @@ func (o Oid) Copy() Oid {
 	return Oid(dest)
 }
 
-/* Within determines if an oid has this oid instance as a prefix.
-
-E.g. MustParseOid("1.2.3").Within("1.2") => true. */
+// Within determines if an oid has this oid instance as a prefix.
+//
+// E.g. MustParseOid("1.2.3").Within(MustParseOid("1.2")) => true.
 func (o Oid) Within(other Oid) bool {
 	if len(other) > len(o) {
 		return false

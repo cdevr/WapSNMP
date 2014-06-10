@@ -67,8 +67,8 @@ func (u *udpStub) Read(b []byte) (n int, err error) {
 		for idx, vb := range val {
 			b[idx] = vb
 		}
-		return len(val), nil
 		u.queuedPackets = u.queuedPackets[1:]
+		return len(val), nil
 	}
 	return 0, nil
 }
@@ -114,26 +114,26 @@ func (u *udpStub) CheckClosed() {
 }
 
 // LocalAddr so udpStub implements the net.conn interface, but doesn't actually return anything.
-func (_ *udpStub) LocalAddr() net.Addr {
+func (u *udpStub) LocalAddr() net.Addr {
 	return nil
 }
 
 // RemoteAddr so udpStub implements the net.conn interface, but doesn't actually return anything.
-func (_ *udpStub) RemoteAddr() net.Addr {
+func (u *udpStub) RemoteAddr() net.Addr {
 	return nil
 }
 
 // SetDeadline so udpStub implements the net.conn interface, but doesn't actually return anything.
-func (_ *udpStub) SetDeadline(t time.Time) error {
+func (u *udpStub) SetDeadline(t time.Time) error {
 	return nil
 }
 
 // SetReadDeadline so udpStub implements the net.conn interface, but doesn't actually return anything.
-func (_ *udpStub) SetReadDeadline(t time.Time) error {
+func (u *udpStub) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
 // SetWriteDeadline so udpStub implements the net.conn interface, but doesn't actually return anything.
-func (_ *udpStub) SetWriteDeadline(t time.Time) error {
+func (u *udpStub) SetWriteDeadline(t time.Time) error {
 	return nil
 }

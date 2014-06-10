@@ -3,23 +3,23 @@ package main
 import (
 	"flag"
 	"fmt"
-	"google3/experimental/users/cde/wapSnmp/wapSnmp"
+	"github.com/cdevr/WapSNMP"
 	"time"
 )
 
 var target = flag.String("target", "", "The host to connect to")
 var community = flag.String("community", "", "The community to use")
-var oid_string = flag.String("oid", "", "The oid of the table to get")
+var oidasstring = flag.String("oid", "", "The oid of the table to get")
 
-func DoGetTable() {
+func doGetTable() {
 	flag.Parse()
 
-	fmt.Printf("target=%v\ncommunity=%v\noid=%v\n", *target, *community, *oid_string)
+	fmt.Printf("target=%v\ncommunity=%v\noid=%v\n", *target, *community, *oidasstring)
 	version := wapSnmp.SNMPv2c
 
-	oid, err := wapSnmp.ParseOid(*oid_string)
+	oid, err := wapSnmp.ParseOid(*oidasstring)
 	if err != nil {
-		fmt.Printf("Error parsing oid '%v' : %v", *oid_string, err)
+		fmt.Printf("Error parsing oid '%v' : %v", *oidasstring, err)
 	}
 
 	fmt.Printf("Contacting %v %v %v\n", *target, *community, version)
@@ -41,5 +41,5 @@ func DoGetTable() {
 }
 
 func main() {
-	DoGetTable()
+	doGetTable()
 }

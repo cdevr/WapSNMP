@@ -25,19 +25,19 @@ import (
 	"time"
 )
 
-// Constants for the Type of the TLV field.
+// BERType is a type for Type of the TLV field.
 type BERType uint8
 
-// Type to distinguish Counter32 from just an int
+// Counter is a type to distinguish Counter32 from just an int.
 type Counter int
 
-// Type to distinguish Gauge32 from just an int
-type Gauge int
-
-// Type to distinguish Counter64 from just an int
+// Counter64 is a type to distinguish Counter64 from just an int.
 type Counter64 int
 
-// Type to distinguish Gauge64 from just an int
+// Gauge is a type to distinguish Gauge32 from just an int.
+type Gauge int
+
+// Gauge64 is a type to distinguish Gauge64 from just an int.
 type Gauge64 int
 
 // Constants for the different types of the TLV fields.
@@ -87,10 +87,10 @@ const (
 	EndOfMibView   BERType = 0x82
 )
 
-// Type to indicate which SNMP version is in use.
+// SNMPVersion is a type to indicate which SNMP version is in use.
 type SNMPVersion uint8
 
-// List the supported snmp versions.
+// List of the supported snmp versions.
 const (
 	SNMPv1  SNMPVersion = 0
 	SNMPv2c SNMPVersion = 1
@@ -123,11 +123,10 @@ func EncodeLength(length int) []byte {
 	return result
 }
 
-/* DecodeLength returns the length and the length of the length or an error.
-
-   Caveats: Does not support indefinite length. Couldn't find any
-   SNMP packet dump actually using that.
-*/
+// DecodeLength returns the length and the length of the length or an error.
+//
+// Caveats: Does not support indefinite length. Couldn't find any
+// SNMP packet dump actually using that.
 func DecodeLength(toparse []byte) (int, int, error) {
 	// If the first bit is zero, the rest of the first byte indicates the length. Values up to 127 are encoded this way (unless you're using indefinite length, but we don't support that)
 
@@ -154,9 +153,9 @@ func DecodeLength(toparse []byte) (int, int, error) {
 	return val, 1 + numOctets, nil
 }
 
-/* DecodeInteger decodes an integer.
-
-   Will error out if it's longer than 64 bits. */
+// DecodeInteger decodes an integer.
+//
+// Will error out if it's longer than 64 bits.
 func DecodeInteger(toparse []byte) (int, error) {
 	if len(toparse) > 8 {
 		return 0, fmt.Errorf("don't support more than 64 bits")
@@ -201,7 +200,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 	}
 	seqLength, seqLenLen, err := DecodeLength(toparse[1:])
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse sequence length", seqLenLen)
+		return nil, fmt.Errorf("failed to parse sequence length (seq len len: %d)", seqLenLen)
 	}
 
 	if seqLength == 0 {

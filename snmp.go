@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// The object type that lets you do SNMP requests.
+// WapSNMP is the type that lets you do SNMP requests.
 type WapSNMP struct {
 	Target    string        // Target device for these SNMP events.
 	Community string        // Community to use to contact the device.
@@ -34,9 +34,9 @@ func NewWapSNMP(target, community string, version SNMPVersion, timeout time.Dura
 	return &WapSNMP{target, community, version, timeout, retries, conn}, nil
 }
 
-/* NewWapSNMPOnConn creates a new WapSNMP object from an existing net.Conn.
-
-It does not check if the provided target is valid.*/
+// NewWapSNMPOnConn creates a new WapSNMP object from an existing net.Conn.
+//
+// It does not check if the provided target is valid.
 func NewWapSNMPOnConn(target, community string, version SNMPVersion, timeout time.Duration, retries int, conn net.Conn) *WapSNMP {
 	return &WapSNMP{target, community, version, timeout, retries, conn}
 }
@@ -181,10 +181,10 @@ func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
 	return &resultOid, resultVal, nil
 }
 
-/* GetBulk is semantically the same as maxRepetitions getnext requests, but in a single GETBULK SNMP packet.
-
-   Caveat: many devices will silently drop GETBULK requests for more than some number of maxrepetitions, if
-   it doesn't work, try with a lower value and/or use GetTable. */
+// GetBulk is semantically the same as maxRepetitions getnext requests, but in a single GETBULK SNMP packet.
+//
+// Caveat: many devices will silently drop GETBULK requests for more than some number of maxrepetitions, if
+// it doesn't work, try with a lower value and/or use GetTable.
 func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, error) {
 	requestID := getRandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
