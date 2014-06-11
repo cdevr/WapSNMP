@@ -167,7 +167,7 @@ func DecodeInteger(toparse []byte) (int, error) {
 	return val, nil
 }
 
-// EncodeInteger encodes an integer to BER format.
+//EncodeInteger encodes an integer to BER format.
 func EncodeInteger(toEncode int) []byte {
 	// Calculate the length we'll need for the encoded value.
 	l := 1
@@ -177,7 +177,7 @@ func EncodeInteger(toEncode int) []byte {
 		l++
 	}
 
-	// Now create a byte array of the correct length and copy the value into it.
+	//Now create a byte array of the correct length and copy the value into it.
 	result := make([]byte, l)
 	for i = 0; i < l; i++ {
 		result[i] = byte(toEncode >> uint(8*(l-i-1)))
@@ -185,7 +185,7 @@ func EncodeInteger(toEncode int) []byte {
 	return result
 }
 
-// DecodeSequence decodes BER binary data into into *[]interface{}.
+//DecodeSequence decodes BER binary data into into *[]interface{}.
 func DecodeSequence(toparse []byte) ([]interface{}, error) {
 	var result []interface{}
 
@@ -209,7 +209,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 
 	lidx := 0
 	idx := 1 + seqLenLen
-	// Let's guarantee progress.
+	//Let's guarantee progress.
 	for idx < len(toparse) && idx > lidx {
 		berType := toparse[idx]
 		berLength, berLenLen, err := DecodeLength(toparse[idx+1:])
