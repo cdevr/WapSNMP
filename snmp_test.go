@@ -147,13 +147,8 @@ func TestTrapV2(t *testing.T) {
 		t.Fatalf("Error while decoding trap packet : '%v'", err)
 	}
 
-	val, err := wsnmp.ParseTrap(packet)
+	err = wsnmp.ParseTrap(packet)
 	if err != nil {
 		t.Errorf("Error testing parsing v2 trap: %v.", err)
 	}
-
-	if val != 0 {
-		t.Errorf("Received wrong value : %v", val)
-	}
-
 }
