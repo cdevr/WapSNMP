@@ -1,40 +1,26 @@
 WapSnmp : SNMP client for golang
 --------------------------------
+Currently supported operations:
+SNMP v1, v2c Get, GetMultiple, GetNext, GetBulk, Walk
+SNMP V3 Walk
+SNMP V2c/v3 trap receiver with EngineID auto discovery
 
-# This fork seeks to add SNMP V3 capability 
-# Original README
-This is an open-source SNMP client library for Go. This allows you to query SNMP servers for any variable, given it's OID (no MIB resolution).
+Not supported yet:
+SNMP Set
+SNMP Informs receiver
+SNMP V3 Get, GetMultiple, GetBulk (these can be easily implemented since SNMP V3 Walk is working)
 
-This library has been written to be in Go style and that means it should be very resistent to all conditions. It's entirely non-blocking/asynchronous and very, very fast. It's also surprisingly small and easy to understand.
+Compile
+--------------------------------
+go build utils/test.go  will build the test program for SNMP v3 walk
+go build utils/trapd.go will build the trapd program, which is able to receive SNMP v2 and v3 traps (you need to configure
+users for SNMP v3 traps)
 
-It supports SNMPv2c or lower (not 3, due to it's complexity), and supports all methods provided as part of that standard. Get, GetMultiple (which are really the same request, but ...), GetNext and GetBulk.
+You can run "go test" to perform unit test.
 
-It has been tested on juniper and cisco devices and has proven to remain stable over long periods of time.
+Using the code
+---------------------------------
+The *_test.go files provide good examples of how to use these functions
 
-Example:
 
-  func DoGetTableTest(target string) {
-        community := "public"
-        version := SNMPv2c
 
-        oid := MustParseOid(".1.3.6.1.4.1.2636.3.2.3.1.20")
-
-        fmt.Printf("Contacting %v %v %v\n", target, community, version)
-        wsnmp, err := NewWapSNMP(target, community, version, 2*time.Second, 5)
-        defer wsnmp.Close()
-        if err != nil {
-                fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
-                return
-        }
-
-        table, err := wsnmp.GetTable(oid)
-        if err != nil {
-                fmt.Printf("Error getting table => %v\n", wsnmp)
-                return
-        }
-        for k, v := range table {
-                fmt.Printf("%v => %v\n", k, v)
-        }
-  }
-
-This library can also be used as a ASN1 BER parser.
