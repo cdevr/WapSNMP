@@ -1,5 +1,5 @@
-trapd: utils/trapd.go
+trapd: utils/trapd.go snmp.go
 	go build utils/trapd.go
 clean:
-	rm -f utils/trapd
+	rm -f trapd
 

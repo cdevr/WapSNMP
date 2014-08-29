@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func myUDPServer(listenIPAddr string, port int) net.Conn {
+func myUDPServer(listenIPAddr string, port int) *net.UDPConn {
     addr := net.UDPAddr{
         Port: port,
         IP: net.ParseIP(listenIPAddr),
@@ -32,13 +32,15 @@ func main() {
 
 	wsnmp := snmp.NewWapSNMPOnConn(target, community, version, 2*time.Second, 5, udpsock)
 	defer wsnmp.Close()
+
 	packet:=make([]byte,3000);
 	for {
-		_,err:=udpsock.Read(packet);
+		_,addr,err:=udpsock.ReadFromUDP(packet);
 		if err!=nil{
 			log.Fatal("udp read error\n");
 		}
 
+		log.Printf("trap from %s:\n",addr.IP);
 		val, err := wsnmp.ParseTrap(packet)
 		if err != nil {
 			log.Fatal("Error testing parsing v2 trap: %v.", err)

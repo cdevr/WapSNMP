@@ -642,14 +642,23 @@ func (w WapSNMP) ParseTrap(response []byte) (interface{}, error) {
 	if err != nil {
 		return 1, err
 	}
-	fmt.Printf("%#v\n",decodedResponse);
+	var community string;
 
 	// Fetch the varbinds out of the packet.
+	snmpVer:= decodedResponse[1].(int)+1;
+	fmt.Printf("Version:%d\n",snmpVer);
+	if (snmpVer<3){
+		community = decodedResponse[2].(string);
+		fmt.Printf("Community:%s\n",community);
+	}
 	respPacket := decodedResponse[3].([]interface{})
 	varbinds := respPacket[4].([]interface{})
-	result1 := varbinds[1].([]interface{})[2]
-	result2 := varbinds[2].([]interface{})[2]
-	fmt.Printf("v1=%s, v2=%d\n",result1,result2);
+	for i:=1;i<len(varbinds);i++ {
+		varoid:= varbinds[i].([]interface{})[1]
+		result := varbinds[i].([]interface{})[2]
+		fmt.Printf("%s = %s\n",varoid,result);
+	}
+	fmt.Printf("\n");
 
 	return 0, nil
 }
