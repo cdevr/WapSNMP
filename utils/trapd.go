@@ -33,6 +33,8 @@ func main() {
 	wsnmp := snmp.NewWapSNMPOnConn(target, community, version, 2*time.Second, 5, udpsock)
 	defer wsnmp.Close()
 
+	wsnmp.Trapusers = append(wsnmp.Trapusers,snmp.V3user{ "hcm.snmpv3","SHA1","this_is_my_hcm","AES","my_hcm_is_4_me" });
+
 	packet:=make([]byte,3000);
 	for {
 		_,addr,err:=udpsock.ReadFromUDP(packet);
@@ -40,14 +42,11 @@ func main() {
 			log.Fatal("udp read error\n");
 		}
 
-		log.Printf("trap from %s:\n",addr.IP);
-		val, err := wsnmp.ParseTrap(packet)
-		if err != nil {
-			log.Fatal("Error testing parsing v2 trap: %v.", err)
-		}
+		log.Printf("Received trap from %s:\n",addr.IP);
 
-		if val != 0 {
-			log.Printf("Received wrong value : %v", val)
+		err = wsnmp.ParseTrap(packet)
+		if err != nil {
+			log.Printf("Error processing trap: %v.", err)
 		}
 	}
 	udpsock.Close();

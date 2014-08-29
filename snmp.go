@@ -17,7 +17,16 @@ import (
 	"strings"
 	"bytes"
 	"encoding/binary"
+	"errors"
 )
+
+type V3user struct {
+	User      string
+	AuthAlg   string //MD5 or SHA1
+	AuthPwd   string
+	PrivAlg   string //AES or DES
+	PrivPwd   string
+}
 
 // The object type that lets you do SNMP requests.
 type WapSNMP struct {
@@ -41,6 +50,7 @@ type WapSNMP struct {
 	engineTime    int32
 	desIV		  uint32
 	aesIV		  int64
+	Trapusers	[]V3user
 }
 
 const (
@@ -637,20 +647,81 @@ func (w WapSNMP) GetTable(oid Oid) (map[string]interface{}, error) {
 }
 
 // ParseTrap parses a received SNMP trap and returns  a map of oid to objects
-func (w WapSNMP) ParseTrap(response []byte) (interface{}, error) {
+func (w WapSNMP) ParseTrap(response []byte) error {
 	decodedResponse, err := DecodeSequence(response)
 	if err != nil {
-		return 1, err
+		return  err
 	}
 	var community string;
 
 	// Fetch the varbinds out of the packet.
-	snmpVer:= decodedResponse[1].(int)+1;
+	snmpVer:= decodedResponse[1].(int);
+	if snmpVer<=1 {
+		snmpVer++;
+	}
 	fmt.Printf("Version:%d\n",snmpVer);
 	if (snmpVer<3){
 		community = decodedResponse[2].(string);
 		fmt.Printf("Community:%s\n",community);
+	}else{
+		/*
+		for i, val := range decodedResponse{
+			fmt.Printf("Resp:%v:type=%v\n",i,reflect.TypeOf(val));
+		}
+		*/
+		v3HeaderStr := decodedResponse[3].(string);
+		v3HeaderDecoded, err := DecodeSequence([]byte(v3HeaderStr))
+		if err != nil {
+			fmt.Printf("Error 2 decoding:%v\n",err);
+			return err;
+		}
+
+		w.engineID=v3HeaderDecoded[1].(string)
+		w.engineBoots=int32(v3HeaderDecoded[2].(int))
+		w.engineTime=int32(v3HeaderDecoded[3].(int))
+		w.user =v3HeaderDecoded[4].(string)
+		respAuthParam := v3HeaderDecoded[5].(string)
+		respPrivParam := v3HeaderDecoded[6].(string)
+		fmt.Printf("username=%s\n",w.user);
+
+		if len(respAuthParam) == 0 || len(respPrivParam) == 0 {
+			return errors.New("response is not encrypted");
+		}
+		if len(w.Trapusers)==0 {
+			return errors.New("No SNMP V3 trap user configured");
+		}
+
+		founduser := false;
+		for  _,v3user := range w.Trapusers {
+			if v3user.User==w.user {
+				w.authAlg=v3user.AuthAlg;
+				w.privAlg=v3user.PrivAlg;
+				w.authPwd=v3user.AuthPwd;
+				w.privPwd=v3user.PrivPwd;
+				founduser = true;
+				break;
+			}
+		}
+		if !founduser {
+			return errors.New("No matching user found");
+		}
+
+		//keys
+		w.authKey = password_to_key(w.authPwd, w.engineID , w.authAlg);
+		privKey := password_to_key(w.privPwd, w.engineID , w.authAlg);
+		w.privKey = string(([]byte(privKey))[0:16])
+
+		encryptedResp := decodedResponse[4].(string);
+		plainResp := w.decrypt(encryptedResp,respPrivParam);
+
+		pduDecoded, err := DecodeSequence([]byte(plainResp))
+		if err != nil {
+			fmt.Printf("Error 3 decoding:%v\n",err);
+			return err;
+		}
+		decodedResponse=pduDecoded;
 	}
+
 	respPacket := decodedResponse[3].([]interface{})
 	varbinds := respPacket[4].([]interface{})
 	for i:=1;i<len(varbinds);i++ {
@@ -660,7 +731,7 @@ func (w WapSNMP) ParseTrap(response []byte) (interface{}, error) {
 	}
 	fmt.Printf("\n");
 
-	return 0, nil
+	return nil
 }
 
 // Close the net.conn in WapSNMP.
