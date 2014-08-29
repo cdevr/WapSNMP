@@ -12,8 +12,8 @@ Not supported yet:
 
 Compile
 --------------------------------
-go build utils/test.go  will build the test program for SNMP v3 walk
-go build utils/trapd.go will build the trapd program, which is able to receive SNMP v2 and v3 traps (you need to configure
+* go build utils/test.go  will build the test program for SNMP v3 walk
+* go build utils/trapd.go will build the trapd program, which is able to receive SNMP v2 and v3 traps (you need to configure
 users for SNMP v3 traps)
 
 You can run "go test" to perform unit test.
