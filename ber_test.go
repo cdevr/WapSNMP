@@ -15,11 +15,11 @@ type LengthTest struct {
 func TestLengthDecodingEncoding(t *testing.T) {
 	tests := []LengthTest{
 		LengthTest{[]byte{0x26}, 38, 1},
-		LengthTest{[]byte{0x81, 0xc9}, 201, 2},
-		LengthTest{[]byte{0x81, 0xca}, 202, 2},
-		LengthTest{[]byte{0x81, 0x9f}, 159, 2},
-		LengthTest{[]byte{0x82, 0x01, 0x70}, 368, 3},
-		LengthTest{[]byte{0x81, 0xe3}, 227, 2},
+		LengthTest{[]byte{0x82,0x00, 0xc9}, 201, 3},
+		LengthTest{[]byte{0x82,0x00, 0xca}, 202, 3},
+		LengthTest{[]byte{0x82,0x00, 0x9f}, 159, 3},
+		LengthTest{[]byte{0x82,0x01, 0x70}, 368, 3},
+		LengthTest{[]byte{0x82,0x00, 0xe3}, 227, 3},
 	}
 
 	for _, test := range tests {

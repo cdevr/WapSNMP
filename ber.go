@@ -254,7 +254,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, pdu)
-		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnReport:
+		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnReport, AsnTrap2:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
 				return nil, err

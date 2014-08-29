@@ -636,6 +636,24 @@ func (w WapSNMP) GetTable(oid Oid) (map[string]interface{}, error) {
 	return result, nil
 }
 
+// ParseTrap parses a received SNMP trap and returns  a map of oid to objects
+func (w WapSNMP) ParseTrap(response []byte) (interface{}, error) {
+	decodedResponse, err := DecodeSequence(response)
+	if err != nil {
+		return 1, err
+	}
+	fmt.Printf("%#v\n",decodedResponse);
+
+	// Fetch the varbinds out of the packet.
+	respPacket := decodedResponse[3].([]interface{})
+	varbinds := respPacket[4].([]interface{})
+	result1 := varbinds[1].([]interface{})[2]
+	result2 := varbinds[2].([]interface{})[2]
+	fmt.Printf("v1=%s, v2=%d\n",result1,result2);
+
+	return 0, nil
+}
+
 // Close the net.conn in WapSNMP.
 func (w WapSNMP) Close() error {
 	return w.conn.Close()

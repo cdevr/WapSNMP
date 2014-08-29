@@ -1,6 +1,7 @@
 package main
 import (
-	snmp "github.com/cdevr/WapSNMP"
+	//snmp "github.com/cdevr/WapSNMP"
+	snmp "github.com/tiebingzhang/WapSNMP"
 )
 
 func main(){

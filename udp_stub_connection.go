@@ -24,7 +24,6 @@ type expectAndRespond struct {
    readability).
 */
 type udpStub struct {
-	expectedPacketsAndResponses map[string][]byte
 	ignoreUnknownPackets        bool
 	expectResponses             []*expectAndRespond
 	queuedPackets               []string

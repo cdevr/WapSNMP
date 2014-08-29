@@ -5,6 +5,7 @@ import (
 	"math/rand" // Needed to set Seed, so a consistent request ID will be chosen.
 	"testing"
 	"time"
+	"encoding/hex"
 )
 
 func ExampleGetTable() {
@@ -102,6 +103,7 @@ func ExampleGet() {
 func TestGet(t *testing.T) {
 	rand.Seed(0)
 
+
 	target := "magic_host"
 	community := "[R0_C@cti!]"
 	version := SNMPv2c
@@ -123,6 +125,34 @@ func TestGet(t *testing.T) {
 	}
 
 	if val != time.Duration(76705700)*10*time.Millisecond {
+		t.Errorf("Received wrong value : %v", val)
+	}
+
+}
+
+func TestTrapV2(t *testing.T) {
+	rand.Seed(0)
+	target := "magic_host"
+	community := "public"
+	version := SNMPv2c
+
+	//oid := MustParseOid("1.2.3.4.0")
+	udpStub := NewUdpStub(t)
+	defer udpStub.CheckClosed()
+	wsnmp := NewWapSNMPOnConn(target, community, version, 2*time.Second, 5, udpStub)
+	defer wsnmp.Close()
+
+	packet,err:=hex.DecodeString("304302010104067075626c6963a73602047cd94c540201000201003028301006082b0601020101030043043aa3e6303014060a2b06010603010104010006062b0601020100")
+	if err != nil {
+		t.Fatalf("Error while decoding trap packet : '%v'", err)
+	}
+
+	val, err := wsnmp.ParseTrap(packet)
+	if err != nil {
+		t.Errorf("Error testing parsing v2 trap: %v.", err)
+	}
+
+	if val != 0 {
 		t.Errorf("Received wrong value : %v", val)
 	}
 
