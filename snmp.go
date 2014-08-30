@@ -459,11 +459,22 @@ func (w WapSNMP) decrypt(payload,privParam string ) string {
 
 // GetNext issues a GETNEXT SNMP request.
 func (w *WapSNMP) GetNextV3(oid Oid) (*Oid, interface{}, error) {
+	return w.doGetV3(oid,AsnGetNextRequest);
+}
+
+// Get
+func (w *WapSNMP) GetV3(oid Oid) (interface{}, error) {
+	_,val,err:=w.doGetV3(oid,AsnGetRequest);
+	return val,err;
+}
+
+// A function does both GetNext and Get for SNMP V3
+func (w *WapSNMP) doGetV3(oid Oid, request BERType) (*Oid, interface{}, error) {
 	msgID := getRandomRequestID()
 	requestID := getRandomRequestID()
 	req, err := EncodeSequence(
 		[]interface{}{Sequence,w.engineID,"",
-			[]interface{}{AsnGetNextRequest, requestID, 0, 0,
+			[]interface{}{request, requestID, 0, 0,
 				[]interface{}{Sequence,
 					[]interface{}{Sequence, oid, nil}}}})
 	if err != nil {

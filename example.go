@@ -112,4 +112,23 @@ func DoGetTest(target string) {
 	}
 }
 
+func DoGetTestV3(target string, oidstr,username, authAlg, authKey, privAlg, privKey string) {
+	oid := MustParseOid(oidstr)
+
+	fmt.Printf("Contacting %v using SNMP v3\n", target)
+	wsnmp, err := NewWapSNMPv3(target,  username, authAlg, authKey, privAlg, privKey, 2*time.Second, 2)
+	if err != nil {
+		fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
+		return
+	}
+	defer wsnmp.Close()
+	wsnmp.Discover();
+
+	val, err := wsnmp.GetV3(oid)
+	if err != nil {
+		fmt.Printf("GetV3 error => %v\n", err)
+		return
+	}
+	fmt.Printf("GetV3(%v) => %v\n", oid , val)
+}
 
