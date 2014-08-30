@@ -57,14 +57,12 @@ func DoWalkTest(target string) {
 	}
 }
 
-func DoWalkTestV3(target string) {
-	oid := MustParseOid(".1.3.6.1.2.1.1")
+func DoWalkTestV3(target string, oidstr,username, authAlg, authKey, privAlg, privKey string) {
+	oid := MustParseOid(oidstr)
 	oid0 := oid;
 
 	fmt.Printf("Contacting %v using SNMP v3\n", target)
-	//wsnmp, err := NewWapSNMPv3(target, "tzhang",SNMP_SHA1,"1234567890",SNMP_AES,"1234567890", 2*time.Second, 2)
-	//wsnmp, err := NewWapSNMPv3(target, "tzhang_ma",SNMP_MD5,"1234567890",SNMP_AES,"1234567890", 2*time.Second, 2)
-	wsnmp, err := NewWapSNMPv3(target, "tzhang_md",SNMP_MD5,"1234567890",SNMP_DES,"1234567890", 2*time.Second, 2)
+	wsnmp, err := NewWapSNMPv3(target,  username, authAlg, authKey, privAlg, privKey, 2*time.Second, 2)
 	if err != nil {
 		fmt.Printf("Error creating wsnmp => %v\n", wsnmp)
 		return

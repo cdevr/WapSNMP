@@ -145,6 +145,18 @@ func DecodeLength(toparse []byte) (int, int, error) {
 	return val, 1 + numOctets, nil
 }
 
+func DecodeCounter64(toparse []byte) (uint64, error) {
+	if len(toparse) > 8 {
+		return 0, fmt.Errorf("don't support more than 64 bits")
+	}
+	var val uint64;
+	val = 0
+	for _, b := range toparse {
+		val = val*256 + uint64(b)
+	}
+	return val, nil
+}
+
 /* DecodeInteger decodes an integer.
 
    Will error out if it's longer than 64 bits. */
@@ -242,6 +254,13 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, val)
+		case Counter64:
+			val, err := DecodeCounter64(berValue)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, val)
+
 		case Timeticks:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
