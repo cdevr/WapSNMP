@@ -33,7 +33,7 @@ func main() {
 	wsnmp := snmp.NewWapSNMPOnConn(target, community, version, 2*time.Second, 5, udpsock)
 	defer wsnmp.Close()
 
-	wsnmp.Trapusers = append(wsnmp.Trapusers,snmp.V3user{ "hcm.snmpv3","SHA1","this_is_my_hcm","AES","my_hcm_is_4_me" });
+	wsnmp.Trapusers = append(wsnmp.Trapusers,snmp.V3user{ "pcb.snmpv3","SHA1","this_is_my_pcb","AES","my_pcb_is_4_me" });
 
 	packet:=make([]byte,3000);
 	for {
