@@ -732,9 +732,19 @@ func (w WapSNMP) ParseTrap(response []byte) error {
 		}
 		decodedResponse=pduDecoded;
 	}
+	//fmt.Printf("%#v\n",decodedResponse);
 
 	respPacket := decodedResponse[3].([]interface{})
-	varbinds := respPacket[4].([]interface{})
+	var varbinds []interface{}
+	if (snmpVer==1){
+		fmt.Printf("OID: %s\n",respPacket[1])
+		fmt.Printf("Agent Address: %s\n",respPacket[2])
+		fmt.Printf("Generic Trap: %d\n",respPacket[3])
+		varbinds = respPacket[6].([]interface{})
+	}else{
+		varbinds = respPacket[4].([]interface{})
+	}
+
 	for i:=1;i<len(varbinds);i++ {
 		varoid:= varbinds[i].([]interface{})[1]
 		result := varbinds[i].([]interface{})[2]

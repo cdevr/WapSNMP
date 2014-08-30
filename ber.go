@@ -171,6 +171,14 @@ func DecodeInteger(toparse []byte) (int, error) {
 	return val, nil
 }
 
+func DecodeIPAddress(toparse []byte) (string, error) {
+	if len(toparse) != 4 {
+		return "", fmt.Errorf("need 4 bytes for IP address")
+	}
+	return fmt.Sprintf("%d.%d.%d.%d",toparse[0],toparse[1],toparse[2],toparse[3]),nil
+}
+
+
 // EncodeInteger encodes an integer to BER format.
 func EncodeInteger(toEncode int) []byte {
 	if toEncode==0 {
@@ -267,13 +275,19 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, time.Duration(val)*10*time.Millisecond)
+		case Ipaddress:
+			val, err := DecodeIPAddress(berValue)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, val)
 		case Sequence:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
 				return nil, err
 			}
 			result = append(result, pdu)
-		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnReport, AsnTrap2:
+		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnReport, AsnTrap2, AsnTrap:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
 				return nil, err
