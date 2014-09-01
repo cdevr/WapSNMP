@@ -20,6 +20,12 @@ type WapSNMP struct {
 	conn      net.Conn      // Cache the UDP connection in the object.
 }
 
+// A type to express an oid value pair.
+type SNMPValue struct {
+  Oid Oid
+  Value interface{}
+}
+
 const (
 	bufSize int = 16384
 )
@@ -185,6 +191,9 @@ func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
 //
 // Caveat: many devices will silently drop GETBULK requests for more than some number of maxrepetitions, if
 // it doesn't work, try with a lower value and/or use GetTable.
+//
+// Caveat: as codedance (on github) pointed out, iteration order on a map is indeterminate. You can alternatively
+// use GetBulkArray to get the entries as a list, with deterministic iteration order.
 func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, error) {
 	requestID := getRandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
@@ -220,23 +229,58 @@ func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, e
 	return result, nil
 }
 
+// Same as GetBulk, but returns it's results as a list, for those who want deterministic
+// iteration instead of convenient access.
+func (w WapSNMP) GetBulkArray(oid Oid, maxRepetitions int) ([]SNMPValue, error) {
+	requestID := getRandomRequestID()
+	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
+		[]interface{}{AsnGetBulkRequest, requestID, 0, maxRepetitions,
+			[]interface{}{Sequence,
+				[]interface{}{Sequence, oid, nil}}}})
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]byte, bufSize, bufSize)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedResponse, err := DecodeSequence(response[:numRead])
+	if err != nil {
+		return nil, fmt.Errorf("Error during sequence decoding : %v", err)
+	}
+
+	// Find the varbinds
+	respPacket := decodedResponse[3].([]interface{})
+	respVarbinds := respPacket[4].([]interface{})
+
+	result := make([]SNMPValue, 0, len(respVarbinds[1:]))
+	for _, v := range respVarbinds[1:] { // First element is just a sequence
+		oid := v.([]interface{})[1].(Oid)
+		value := v.([]interface{})[2]
+		result = append(result, SNMPValue{oid, value})
+	}
+
+	return result, nil
+}
+
 // GetTable efficiently gets an entire table from an SNMP agent. Uses GETBULK requests to go fast.
 func (w WapSNMP) GetTable(oid Oid) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	lastOid := oid.Copy()
 	for lastOid.Within(oid) {
-		log.Printf("Sending GETBULK(%v, 50)\n", lastOid)
-		results, err := w.GetBulk(lastOid, 50)
+		results, err := w.GetBulkArray(lastOid, 50)
 		if err != nil {
 			return nil, fmt.Errorf("received GetBulk error => %v\n", err)
 		}
 		newLastOid := lastOid.Copy()
-		for o, v := range results {
-			oAsOid := MustParseOid(o)
-			if oAsOid.Within(oid) {
-				result[o] = v
+		for _, v := range results {
+			if v.Oid.Within(oid) {
+				result[v.Oid.String()] = v.Value
 			}
-			newLastOid = oAsOid
+			newLastOid = v.Oid
 		}
 
 		if reflect.DeepEqual(lastOid, newLastOid) {
