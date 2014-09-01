@@ -238,25 +238,25 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 		case AsnObjectID:
 			oid, err := DecodeOid(berValue)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error decoding oid %v : %v", berValue, err)
 			}
 			result = append(result, *oid)
 		case AsnCounter32:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
 			result = append(result, Counter(val))
 		case AsnGauge32:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
 			result = append(result, Gauge(val))
 		case AsnTimeticks:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
 			result = append(result, time.Duration(val)*10*time.Millisecond)
 		case Sequence:
