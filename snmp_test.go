@@ -150,12 +150,12 @@ func TestGetTable(t *testing.T) {
 		t.Fatalf("Error testing to get a table : %v.", err)
 	}
 
-  gValue, ok := val[".1.3.6.1.2.1.2.2.1.21.646"].(Gauge)
-  if !ok {
-    v := val[".1.3.6.1.2.1.2.2.1.21.646"]
-    t.Fatalf("Expected a zero int value for this table request, got wrong type %T for value '%v'", v, v)
-  }
-  if gValue != 0 {
-    t.Errorf("Expected a zero value in this table request, got %v", val["1.3.6.1.2.1.2.2.1.21.646"])
-  }
+	gValue, ok := val[".1.3.6.1.2.1.2.2.1.21.646"].(Gauge)
+	if !ok {
+		v := val[".1.3.6.1.2.1.2.2.1.21.646"]
+		t.Fatalf("Expected a zero int value for this table request, got wrong type %T for value '%v'", v, v)
+	}
+	if gValue != 0 {
+		t.Errorf("Expected a zero value in this table request, got %v", val["1.3.6.1.2.1.2.2.1.21.646"])
+	}
 }

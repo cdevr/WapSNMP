@@ -81,6 +81,7 @@ const (
 	AsnGetRequest     BERType = 0xa0
 	AsnGetNextRequest BERType = 0xa1
 	AsnGetResponse    BERType = 0xa2
+	AsnSetRequest     BERType = 0xa3
 	AsnGetBulkRequest BERType = 0xa5
 
 	NoSuchInstance BERType = 0x81

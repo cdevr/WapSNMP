@@ -22,8 +22,8 @@ type WapSNMP struct {
 
 // A type to express an oid value pair.
 type SNMPValue struct {
-  Oid Oid
-  Value interface{}
+	Oid   Oid
+	Value interface{}
 }
 
 const (
@@ -121,6 +121,76 @@ func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
 	varbinds := []interface{}{Sequence}
 	for _, oid := range oids {
 		varbinds = append(varbinds, []interface{}{Sequence, oid, nil})
+	}
+	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
+		[]interface{}{AsnGetRequest, requestID, 0, 0, varbinds}})
+
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]byte, bufSize, bufSize)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedResponse, err := DecodeSequence(response[:numRead])
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the varbinds
+	respPacket := decodedResponse[3].([]interface{})
+	respVarbinds := respPacket[4].([]interface{})
+
+	result := make(map[string]interface{})
+	for _, v := range respVarbinds[1:] { // First element is just a sequence
+		oid := v.([]interface{})[1].(Oid).String()
+		value := v.([]interface{})[2]
+		result[oid] = value
+	}
+
+	return result, nil
+}
+
+// Set sends an SNMP set request to change the value associated with an oid.
+func (w WapSNMP) Set(oid Oid, value interface{}) (interface{}, error) {
+	requestID := getRandomRequestID()
+	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
+		[]interface{}{AsnSetRequest, requestID, 0, 0,
+			[]interface{}{Sequence,
+				[]interface{}{Sequence, oid, value}}}})
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]byte, bufSize, bufSize)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedResponse, err := DecodeSequence(response[:numRead])
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch the varbinds out of the packet.
+	respPacket := decodedResponse[3].([]interface{})
+	varbinds := respPacket[4].([]interface{})
+	result := varbinds[1].([]interface{})[2]
+
+	return result, nil
+}
+
+// SetMultiple issues a single GET SNMP request requesting multiple values
+func (w WapSNMP) SetMultiple(toset map[string]interface{}) (map[string]interface{}, error) {
+	requestID := getRandomRequestID()
+
+	varbinds := []interface{}{Sequence}
+	for oid, value := range toset {
+		varbinds = append(varbinds, []interface{}{Sequence, oid, value})
 	}
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnGetRequest, requestID, 0, 0, varbinds}})
