@@ -98,6 +98,7 @@ func TestSequenceDecoding(t *testing.T) {
 		SequenceTest{"3013060b2b060102010202010a84234104566060eb", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.10.547"), Counter(1449156843)}},
 		SequenceTest{"300f060a2b060102010202010508420100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.8"), Gauge(0)}},
 		SequenceTest{"3012060a2b0601020102020105344204ffffffff", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.52"), Gauge(4294967295)}},
+		SequenceTest{"300f060a2b060102010202011601060100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.22.1"), MustParseOid("0.0")}},
 	}
 
 	for _, test := range SequenceTests {

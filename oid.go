@@ -63,13 +63,13 @@ func ParseOid(oid string) (Oid, error) {
 
 // DecodeOid decodes a ASN.1 BER raw oid into an Oid instance.
 func DecodeOid(raw []byte) (*Oid, error) {
-	if len(raw) < 2 {
-		return nil, errors.New("oid is at least 2 bytes long")
+	if len(raw) < 1 {
+		return nil, errors.New("0 byte oid doesn't exist.")
 	}
 
 	result := make([]int, 2)
-	result[0] = 1
-	result[1] = 3
+	result[0] = int(raw[0] / 40)
+	result[1] = int(raw[0] % 40)
 	val := 0
 	for idx, b := range raw {
 		if idx == 0 {
@@ -89,13 +89,10 @@ func DecodeOid(raw []byte) (*Oid, error) {
 
 // Encode encodes the oid into an ASN.1 BER byte array.
 func (o Oid) Encode() ([]byte, error) {
-	if len(o) < 3 {
-		return nil, errors.New("oid needs to be at least 3 long")
+	if len(o) < 2 {
+		return nil, errors.New("oid needs to be at least 2 long")
 	}
 	var result []byte
-	if o[0] != 1 || o[1] != 3 {
-		return nil, errors.New("oid didn't start with .1.3")
-	}
 	/* Every o is supposed to start with 40 * first_byte + second
 	   byte */
 	start := (40 * o[0]) + o[1]
