@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os"
 	"reflect"
 	"time"
 )
@@ -15,6 +16,7 @@ type WapSNMP struct {
 	Target    string        // Target device for these SNMP events.
 	Community string        // Community to use to contact the device.
 	Version   SNMPVersion   // SNMPVersion to encode in the packets.
+	Logger    *log.Logger   // Logger to use for all SNMP-related messages
 	timeout   time.Duration // Timeout to use for all SNMP packets.
 	retries   int           // Number of times to retry an operation.
 	conn      net.Conn      // Cache the UDP connection in the object.
@@ -24,6 +26,10 @@ const (
 	bufSize int = 16384
 )
 
+func newDefaultLogger() *log.Logger {
+	return log.New(os.Stderr, "[SNMP] ", log.LstdFlags)
+}
+
 // NewWapSNMP creates a new WapSNMP object. Opens a udp connection to the device that will be used for the SNMP packets.
 func NewWapSNMP(target, community string, version SNMPVersion, timeout time.Duration, retries int) (*WapSNMP, error) {
 	targetPort := fmt.Sprintf("%s:161", target)
@@ -31,14 +37,14 @@ func NewWapSNMP(target, community string, version SNMPVersion, timeout time.Dura
 	if err != nil {
 		return nil, fmt.Errorf(`error connecting to ("udp", "%s") : %s`, targetPort, err)
 	}
-	return &WapSNMP{target, community, version, timeout, retries, conn}, nil
+	return &WapSNMP{target, community, version, newDefaultLogger(), timeout, retries, conn}, nil
 }
 
 // NewWapSNMPOnConn creates a new WapSNMP object from an existing net.Conn.
 //
 // It does not check if the provided target is valid.
 func NewWapSNMPOnConn(target, community string, version SNMPVersion, timeout time.Duration, retries int, conn net.Conn) *WapSNMP {
-	return &WapSNMP{target, community, version, timeout, retries, conn}
+	return &WapSNMP{target, community, version, newDefaultLogger(), timeout, retries, conn}
 }
 
 // Generate a valid SNMP request ID.
@@ -47,29 +53,29 @@ func getRandomRequestID() int {
 }
 
 // poll sends a packet and wait for a response. Both operations can timeout, they're retried up to retries times.
-func poll(conn net.Conn, toSend []byte, respondBuffer []byte, retries int, timeout time.Duration) (int, error) {
+func poll(conn net.Conn, toSend []byte, respondBuffer []byte, retries int, timeout time.Duration, logger *log.Logger) (int, error) {
 	var err error
 	for i := 0; i < retries+1; i++ {
 		deadline := time.Now().Add(timeout)
 
 		if err = conn.SetWriteDeadline(deadline); err != nil {
-			log.Printf("Couldn't set write deadline. Retrying. Retry %d/%d\n", i, retries)
+			logger.Printf("Couldn't set write deadline. Retrying. Retry %d/%d\n", i, retries)
 			continue
 		}
 		if _, err = conn.Write(toSend); err != nil {
-			log.Printf("Couldn't write. Retrying. Retry %d/%d\n", i, retries)
+			logger.Printf("Couldn't write. Retrying. Retry %d/%d\n", i, retries)
 			continue
 		}
 
 		deadline = time.Now().Add(timeout)
 		if err = conn.SetReadDeadline(deadline); err != nil {
-			log.Printf("Couldn't set read deadline. Retrying. Retry %d/%d\n", i, retries)
+			logger.Printf("Couldn't set read deadline. Retrying. Retry %d/%d\n", i, retries)
 			continue
 		}
 
 		numRead := 0
 		if numRead, err = conn.Read(respondBuffer); err != nil {
-			log.Printf("Couldn't read. Retrying. Retry %d/%d\n", i, retries)
+			logger.Printf("Couldn't read. Retrying. Retry %d/%d\n", i, retries)
 			continue
 		}
 
@@ -90,7 +96,7 @@ func (w WapSNMP) Get(oid Oid) (interface{}, error) {
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond, w.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +130,7 @@ func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond, w.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +166,7 @@ func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
 	}
 
 	response := make([]byte, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond, w.Logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,7 +202,7 @@ func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, e
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond, w.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +231,7 @@ func (w WapSNMP) GetTable(oid Oid) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	lastOid := oid.Copy()
 	for lastOid.Within(oid) {
-		log.Printf("Sending GETBULK(%v, 50)\n", lastOid)
+		w.Logger.Printf("Sending GETBULK(%v, 50)\n", lastOid)
 		results, err := w.GetBulk(lastOid, 50)
 		if err != nil {
 			return nil, fmt.Errorf("received GetBulk error => %v\n", err)
