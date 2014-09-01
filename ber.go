@@ -91,6 +91,9 @@ const (
 // SNMPVersion is a type to indicate which SNMP version is in use.
 type SNMPVersion uint8
 
+// This will be the field if data couldn't be decoded.
+type UnsupportedBerType []byte
+
 // List of the supported snmp versions.
 const (
 	SNMPv1  SNMPVersion = 0
@@ -275,9 +278,9 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 		case NoSuchInstance:
 			return nil, fmt.Errorf("No such instance. Received bytes: %v", toparse)
 		case EndOfMibView:
-			return nil, fmt.Errorf("End of mib view. Received bytes: %v", toparse)
+			result = append(result, EndOfMibView)
 		default:
-			return nil, fmt.Errorf("did not understand type %v", berType)
+			result = append(result, UnsupportedBerType(berAll))
 		}
 
 		lidx = idx
