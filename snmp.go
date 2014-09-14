@@ -96,7 +96,7 @@ func (w WapSNMP) Get(oid Oid) (interface{}, error) {
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func (w WapSNMP) Set(oid Oid, value interface{}) (interface{}, error) {
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (w WapSNMP) SetMultiple(toset map[string]interface{}) (map[string]interface
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
 	}
 
 	response := make([]byte, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -275,7 +275,7 @@ func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, e
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func (w WapSNMP) GetBulkArray(oid Oid, maxRepetitions int) ([]SNMPValue, error) 
 	}
 
 	response := make([]byte, bufSize, bufSize)
-	numRead, err := poll(w.conn, req, response, w.retries, 500*time.Millisecond)
+	numRead, err := poll(w.conn, req, response, w.retries, w.timeout)
 	if err != nil {
 		return nil, err
 	}
