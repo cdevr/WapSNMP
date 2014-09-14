@@ -23,6 +23,7 @@ parse BER.
 import (
 	"fmt"
 	"time"
+  "net"
 )
 
 // BERType is a type for Type of the TLV field.
@@ -263,6 +264,11 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
 			result = append(result, time.Duration(val)*10*time.Millisecond)
+    case AsnIpaddress:
+      if len(berValue) != 4 {
+        return nil, fmt.Errorf("Error decoding IP address %v : length is not 4", berValue)
+      }
+      result = append(result, net.IPv4(berValue[0], berValue[1], berValue[2], berValue[3]))
 		case Sequence:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
@@ -354,6 +360,17 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 			for _, b := range enc {
 				toEncap = append(toEncap, b)
 			}
+    case net.IP:
+      val_ipv4 := val.To4()
+      if val_ipv4 == nil {
+        return nil, fmt.Errorf("Can only encode IPv4 addresses")
+      }
+      enc := []byte(val_ipv4)
+      toEncap = append(toEncap, byte(AsnIpaddress))
+      toEncap = append(toEncap, byte(len(enc)))
+      for _, b := range enc {
+        toEncap = append(toEncap, b)
+      }
 		case []interface{}:
 			enc, err := EncodeSequence(val)
 			if err != nil {
