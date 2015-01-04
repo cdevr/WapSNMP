@@ -1,10 +1,11 @@
 package wapsnmp
 
 import (
+	"encoding/base64"
 	"encoding/hex"
+	"net"
 	"reflect"
 	"testing"
-  "net"
 )
 
 type Counter32Test struct {
@@ -100,7 +101,7 @@ func TestSequenceDecoding(t *testing.T) {
 		SequenceTest{"300f060a2b060102010202010508420100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.8"), Gauge(0)}},
 		SequenceTest{"3012060a2b0601020102020105344204ffffffff", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.52"), Gauge(4294967295)}},
 		SequenceTest{"300f060a2b060102010202011601060100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.22.1"), MustParseOid("0.0")}},
-    SequenceTest{"3006400401020304", []interface{}{Sequence, net.ParseIP("1.2.3.4")}},
+		SequenceTest{"3006400401020304", []interface{}{Sequence, net.ParseIP("1.2.3.4")}},
 	}
 
 	for _, test := range SequenceTests {
@@ -145,5 +146,24 @@ func TestDecodeNoSuchInstance(t *testing.T) {
 	_, err := DecodeSequence([]byte{0x30, 0x0b, 0x06, 0x07, 0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x03, 0x81, 0x00})
 	if err == nil {
 		t.Error("Error not reported as expected")
+	}
+}
+
+func TestTrapV2(t *testing.T) {
+	// Generated via:
+	// $ snmptrap -v 2c -c public localhost:1600 '' SNMPv2-MIB::snmpTrapOID SNMPv2-MIB::sysName.0 s "test"
+	s := "MFgCAQEEBnB1YmxpY6dLAgRAPUXKAgEAAgEAMD0wEAYIKwYBAgEBAwBDBAbPOZIwFwYKKwYBBgMBAQQBAAYJKwYBBgMBAQQBMBAGCCsGAQIBAQUABAR0ZXN0"
+	data, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		t.Fatalf("DecodeString(_) = _, %v, want nil", err)
+	}
+	d, err := DecodeSequence(data)
+	if err != nil {
+		t.Fatalf("DecodeSequence(_) = _, %v, want nil", err)
+	}
+
+	v := d[3].([]interface{})[4].([]interface{})[3].([]interface{})[2].(string)
+	if v != "test" {
+		t.Fatalf("Failed to decode trap sequence, got %q want 'test'", v)
 	}
 }

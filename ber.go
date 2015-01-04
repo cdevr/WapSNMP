@@ -84,6 +84,7 @@ const (
 	AsnGetResponse    BERType = 0xa2
 	AsnSetRequest     BERType = 0xa3
 	AsnGetBulkRequest BERType = 0xa5
+	AsnTrapV2					BERType = 0xa7
 
 	NoSuchInstance BERType = 0x81
 	EndOfMibView   BERType = 0x82
@@ -275,7 +276,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, err
 			}
 			result = append(result, pdu)
-		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse:
+		case AsnGetNextRequest, AsnGetRequest, AsnGetResponse, AsnTrapV2:
 			pdu, err := DecodeSequence(berAll)
 			if err != nil {
 				return nil, err
