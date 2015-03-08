@@ -5,14 +5,12 @@ import (
 	"testing"
 )
 
-type ParseOidTest struct {
-	ToParse           string
-	ExpectedCanonForm string
-	ExpectFail        bool
-}
-
 func TestParseOid(t *testing.T) {
-	tests := []ParseOidTest{
+	tests := []struct {
+		toParse           string
+		expectedCanonForm string
+		expectFail        bool
+	}{
 		{"1.3.6.1.4.1.2636.3.2.3.1.20", ".1.3.6.1.4.1.2636.3.2.3.1.20", false},
 		{".1.3.127.128", ".1.3.127.128", false},
 		{"1.3", ".1.3", false},
@@ -23,25 +21,25 @@ func TestParseOid(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		oid, err := ParseOid(test.ToParse)
-		if (err != nil) != test.ExpectFail {
-			t.Errorf("ParseOid '%s' got error '%s', expected '%t'", test.ToParse, err, test.ExpectFail)
+		oid, err := ParseOid(test.toParse)
+		if (err != nil) != test.expectFail {
+			t.Errorf("ParseOid '%s' got error '%s', expected '%t'", test.toParse, err, test.expectFail)
 		}
-		if !test.ExpectFail {
-			if fmt.Sprintf("%s", oid) != test.ExpectedCanonForm {
-				t.Errorf("ParseOid '%s' got '%s', expected '%s'", test.ToParse, oid, test.ExpectedCanonForm)
+		if !test.expectFail {
+			if fmt.Sprintf("%s", oid) != test.expectedCanonForm {
+				t.Errorf("ParseOid '%s' got '%s', expected '%s'", test.toParse, oid, test.expectedCanonForm)
 			}
 		}
 	}
 }
 
 func TestOidEncode(t *testing.T) {
-	encodeTest := map[string][]byte{
+	tests := map[string][]byte{
 		"1.3.6.1.4.1.2636.3.2.3.1.20": {0x2b, 0x06, 0x01, 0x04, 0x01, 0x94, 0x4c, 0x03, 0x02, 0x03, 0x01, 0x14},
 		"1.3.6.1.2.1.1.5.0":           {0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x05, 0x00},
 	}
 
-	for oidString, expected := range encodeTest {
+	for oidString, expected := range tests {
 		oid, err := ParseOid(oidString)
 		if err != nil {
 			t.Errorf("ParseOid '%s' error '%s'", oidString, err)
