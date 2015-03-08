@@ -8,37 +8,33 @@ import (
 	"testing"
 )
 
-type Counter32Test struct {
-	Encoded  []byte
-	Expected int64
-}
-
 func TestCounter32Decoding(t *testing.T) {
-	tests := []Counter32Test{
+	tests := []struct {
+		input []byte
+		want  uint64
+	}{
 		{[]byte{0x04, 0x50, 0xd8}, 282840},
 		{[]byte{0x04, 0xc8}, 1224},
 		{[]byte{0x56, 0x60, 0x60, 0xeb}, 1449156843},
 	}
 
 	for _, test := range tests {
-		value, err := DecodeInteger(test.Encoded)
+		value, err := DecodeUInt(test.input)
 		if err != nil {
-			t.Errorf("Decoding %v led to error %v", test.Encoded, err)
+			t.Errorf("Decoding %v led to error %v", test.input, err)
 		}
-		if value != test.Expected {
-			t.Errorf("Counter32 not decoded as expected %v => %v, expected %v", test.Encoded, value, test.Expected)
+		if value != test.want {
+			t.Errorf("Counter32 not decoded correct DecodeUInt(%v) => %v, want %v", test.input, value, test.want)
 		}
 	}
 }
 
-type LengthTest struct {
-	Encoded      []byte
-	Length       uint64
-	LengthLength int // This is the length of the encoded length, as derived from the encoded value
-}
-
 func TestLengthDecodingEncoding(t *testing.T) {
-	tests := []LengthTest{
+	tests := []struct {
+		input     []byte
+		length    uint64
+		lengthlen int // This is the length of the encoded length, as derived from the encoded value
+	}{
 		{[]byte{0x26}, 38, 1},
 		{[]byte{0x81, 0xc9}, 201, 2},
 		{[]byte{0x81, 0xca}, 202, 2},
@@ -48,15 +44,15 @@ func TestLengthDecodingEncoding(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		length, lenLength, err := DecodeLength(test.Encoded)
-		if length != test.Length || lenLength != test.LengthLength || err != nil {
-			t.Errorf("Failed to decode %v, expected (%v, %v), result (%v, %v) err: %v", hex.EncodeToString(test.Encoded), test.Length, test.LengthLength, length, lenLength, err)
+		length, lenLength, err := DecodeLength(test.input)
+		if length != test.length || lenLength != test.lengthlen || err != nil {
+			t.Errorf("Failed to decode %v, expected (%v, %v), result (%v, %v) err: %v", hex.EncodeToString(test.input), test.length, test.lengthlen, length, lenLength, err)
 			continue
 		}
 		// Re-encode
-		bytes := EncodeLength(test.Length)
-		if !reflect.DeepEqual(bytes, test.Encoded) {
-			t.Errorf("Length not encoded as expected. Length: %v\nExpected: %v\nResult: %v", test.Length, hex.EncodeToString(test.Encoded), hex.EncodeToString(bytes))
+		bytes := EncodeLength(test.length)
+		if !reflect.DeepEqual(bytes, test.input) {
+			t.Errorf("Length not encoded as expected. Length: %v\nExpected: %v\nResult: %v", test.length, hex.EncodeToString(test.input), hex.EncodeToString(bytes))
 		}
 	}
 }
@@ -89,13 +85,11 @@ func TestDecodeEncodeInteger(t *testing.T) {
 	}
 }
 
-type SequenceTest struct {
-	Encoded string
-	Decoded []interface{}
-}
-
 func TestSequenceDecoding(t *testing.T) {
-	SequenceTests := []SequenceTest{
+	tests := []struct {
+		encoded string
+		decoded []interface{}
+	}{
 		{"3003020100", []interface{}{Sequence, int64(0)}},
 		{"300804067075626c6963", []interface{}{Sequence, "public"}},
 		{"300b04067075626c6963020100", []interface{}{Sequence, "public", int64(0)}},
@@ -106,8 +100,8 @@ func TestSequenceDecoding(t *testing.T) {
 		{"3006400401020304", []interface{}{Sequence, net.ParseIP("1.2.3.4")}},
 	}
 
-	for _, test := range SequenceTests {
-		encodedBytes, err := hex.DecodeString(test.Encoded)
+	for _, test := range tests {
+		encodedBytes, err := hex.DecodeString(test.encoded)
 		if err != nil {
 			t.Fatalf("Error when decoding hex %s", encodedBytes)
 		}
@@ -115,19 +109,19 @@ func TestSequenceDecoding(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error while decoding %v => %v", hex.EncodeToString(encodedBytes), err)
 		}
-		if !reflect.DeepEqual(result, test.Decoded) {
-			t.Errorf("Not decoded as expected. Encoded: %v\nExpected: %v\nResult: %v", hex.EncodeToString(encodedBytes), test.Decoded, result)
+		if !reflect.DeepEqual(result, test.decoded) {
+			t.Errorf("Not decoded as expected. Encoded: %v\nExpected: %v\nResult: %v", hex.EncodeToString(encodedBytes), test.decoded, result)
 		}
 	}
 
-	for _, test := range SequenceTests {
-		encodedBytes, err := hex.DecodeString(test.Encoded)
+	for _, test := range tests {
+		encodedBytes, err := hex.DecodeString(test.encoded)
 		if err != nil {
 			t.Fatalf("Error when decoding hex %s", encodedBytes)
 		}
-		result, err := EncodeSequence(test.Decoded)
+		result, err := EncodeSequence(test.decoded)
 		if err != nil {
-			t.Fatalf("Error while encoding %v => %v", test.Decoded, err)
+			t.Fatalf("Error while encoding %v => %v", test.decoded, err)
 		}
 		if !reflect.DeepEqual(result, encodedBytes) {
 			here := ""
@@ -139,7 +133,7 @@ func TestSequenceDecoding(t *testing.T) {
 			}
 			here += "^ first difference"
 
-			t.Errorf("Not encoded as expected. Decoded: %v\nExpected: %v\nResult: %v\n          %v", test.Decoded, hex.EncodeToString(encodedBytes), hex.EncodeToString(result), here)
+			t.Errorf("Not encoded as expected. Decoded: %v\nExpected: %v\nResult: %v\n          %v", test.decoded, hex.EncodeToString(encodedBytes), hex.EncodeToString(result), here)
 		}
 	}
 }
