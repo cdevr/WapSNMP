@@ -13,13 +13,13 @@ type ParseOidTest struct {
 
 func TestParseOid(t *testing.T) {
 	tests := []ParseOidTest{
-		ParseOidTest{"1.3.6.1.4.1.2636.3.2.3.1.20", ".1.3.6.1.4.1.2636.3.2.3.1.20", false},
-		ParseOidTest{".1.3.127.128", ".1.3.127.128", false},
-		ParseOidTest{"1.3", ".1.3", false},
-		ParseOidTest{".1.3.127.128.129", ".1.3.127.128.129", false},
-		ParseOidTest{"", ".", false},
-		ParseOidTest{".", ".", false},
-		ParseOidTest{"Donald Duck", "", true},
+		{"1.3.6.1.4.1.2636.3.2.3.1.20", ".1.3.6.1.4.1.2636.3.2.3.1.20", false},
+		{".1.3.127.128", ".1.3.127.128", false},
+		{"1.3", ".1.3", false},
+		{".1.3.127.128.129", ".1.3.127.128.129", false},
+		{"", ".", false},
+		{".", ".", false},
+		{"Donald Duck", "", true},
 	}
 
 	for _, test := range tests {
@@ -37,8 +37,8 @@ func TestParseOid(t *testing.T) {
 
 func TestOidEncode(t *testing.T) {
 	encodeTest := map[string][]byte{
-		"1.3.6.1.4.1.2636.3.2.3.1.20": []byte{0x2b, 0x06, 0x01, 0x04, 0x01, 0x94, 0x4c, 0x03, 0x02, 0x03, 0x01, 0x14},
-		"1.3.6.1.2.1.1.5.0":           []byte{0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x05, 0x00},
+		"1.3.6.1.4.1.2636.3.2.3.1.20": {0x2b, 0x06, 0x01, 0x04, 0x01, 0x94, 0x4c, 0x03, 0x02, 0x03, 0x01, 0x14},
+		"1.3.6.1.2.1.1.5.0":           {0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x05, 0x00},
 	}
 
 	for oidString, expected := range encodeTest {

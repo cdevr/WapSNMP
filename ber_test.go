@@ -56,7 +56,7 @@ func TestLengthDecodingEncoding(t *testing.T) {
 		// Re-encode
 		bytes := EncodeLength(test.Length)
 		if !reflect.DeepEqual(bytes, test.Encoded) {
-			t.Errorf("Length not encoded as expected. Length  : %v\nExpected: %v\nResult  : %v", test.Length, hex.EncodeToString(test.Encoded), hex.EncodeToString(bytes))
+			t.Errorf("Length not encoded as expected. Length: %v\nExpected: %v\nResult: %v", test.Length, hex.EncodeToString(test.Encoded), hex.EncodeToString(bytes))
 		}
 	}
 }
@@ -116,7 +116,7 @@ func TestSequenceDecoding(t *testing.T) {
 			t.Fatalf("Error while decoding %v => %v", hex.EncodeToString(encodedBytes), err)
 		}
 		if !reflect.DeepEqual(result, test.Decoded) {
-			t.Errorf("Not decoded as expected. Encoded : %v\nExpected: %v\nResult  : %v", hex.EncodeToString(encodedBytes), test.Decoded, result)
+			t.Errorf("Not decoded as expected. Encoded: %v\nExpected: %v\nResult: %v", hex.EncodeToString(encodedBytes), test.Decoded, result)
 		}
 	}
 
@@ -139,7 +139,7 @@ func TestSequenceDecoding(t *testing.T) {
 			}
 			here += "^ first difference"
 
-			t.Errorf("Not encoded as expected. Decoded : %v\nExpected: %v\nResult  : %v\n          %v", test.Decoded, hex.EncodeToString(encodedBytes), hex.EncodeToString(result), here)
+			t.Errorf("Not encoded as expected. Decoded: %v\nExpected: %v\nResult: %v\n          %v", test.Decoded, hex.EncodeToString(encodedBytes), hex.EncodeToString(result), here)
 		}
 	}
 }
@@ -147,7 +147,7 @@ func TestSequenceDecoding(t *testing.T) {
 func TestDecodeNoSuchInstance(t *testing.T) {
 	_, err := DecodeSequence([]byte{0x30, 0x0b, 0x06, 0x07, 0x2b, 0x06, 0x01, 0x02, 0x01, 0x01, 0x03, 0x81, 0x00})
 	if err == nil {
-		t.Error("Error not reported as expected")
+		t.Error("got nil error for this decode, wanted error")
 	}
 }
 

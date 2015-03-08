@@ -64,7 +64,7 @@ func ParseOid(oid string) (Oid, error) {
 // DecodeOid decodes a ASN.1 BER raw oid into an Oid instance.
 func DecodeOid(raw []byte) (*Oid, error) {
 	if len(raw) < 1 {
-		return nil, errors.New("0 byte oid doesn't exist.")
+		return nil, errors.New("0 byte oid doesn't exist")
 	}
 
 	result := make([]int, 2)

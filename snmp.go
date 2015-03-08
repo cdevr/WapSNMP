@@ -20,7 +20,7 @@ type WapSNMP struct {
 	conn      net.Conn      // Cache the UDP connection in the object.
 }
 
-// A type to express an oid value pair.
+// SNMPValue type to express an oid value pair.
 type SNMPValue struct {
 	Oid   Oid
 	Value interface{}
@@ -35,7 +35,7 @@ func NewWapSNMP(target, community string, version SNMPVersion, timeout time.Dura
 	targetPort := fmt.Sprintf("%s:161", target)
 	conn, err := net.DialTimeout("udp", targetPort, timeout)
 	if err != nil {
-		return nil, fmt.Errorf(`error connecting to ("udp", "%s") : %s`, targetPort, err)
+		return nil, fmt.Errorf(`error connecting to ("udp", "%s"): %s`, targetPort, err)
 	}
 	return &WapSNMP{target, community, version, timeout, retries, conn}, nil
 }
@@ -47,8 +47,8 @@ func NewWapSNMPOnConn(target, community string, version SNMPVersion, timeout tim
 	return &WapSNMP{target, community, version, timeout, retries, conn}
 }
 
-// Generate a valid SNMP request ID.
-func getRandomRequestID() int {
+// RandomRequestID generates a valid SNMP request ID.
+func RandomRequestID() int {
 	return int(rand.Int31())
 }
 
@@ -86,7 +86,7 @@ func poll(conn net.Conn, toSend []byte, respondBuffer []byte, retries int, timeo
 
 // Get sends an SNMP get request requesting the value for an oid.
 func (w WapSNMP) Get(oid Oid) (interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnGetRequest, requestID, 0, 0,
 			[]interface{}{Sequence,
@@ -116,7 +116,7 @@ func (w WapSNMP) Get(oid Oid) (interface{}, error) {
 
 // GetMultiple issues a single GET SNMP request requesting multiple values
 func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 
 	varbinds := []interface{}{Sequence}
 	for _, oid := range oids {
@@ -156,7 +156,7 @@ func (w WapSNMP) GetMultiple(oids []Oid) (map[string]interface{}, error) {
 
 // Set sends an SNMP set request to change the value associated with an oid.
 func (w WapSNMP) Set(oid Oid, value interface{}) (interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnSetRequest, requestID, 0, 0,
 			[]interface{}{Sequence,
@@ -186,7 +186,7 @@ func (w WapSNMP) Set(oid Oid, value interface{}) (interface{}, error) {
 
 // SetMultiple issues a single GET SNMP request requesting multiple values
 func (w WapSNMP) SetMultiple(toset map[string]interface{}) (map[string]interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 
 	varbinds := []interface{}{Sequence}
 	for oid, value := range toset {
@@ -226,7 +226,7 @@ func (w WapSNMP) SetMultiple(toset map[string]interface{}) (map[string]interface
 
 // GetNext issues a GETNEXT SNMP request.
 func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnGetNextRequest, requestID, 0, 0,
 			[]interface{}{Sequence,
@@ -265,7 +265,7 @@ func (w WapSNMP) GetNext(oid Oid) (*Oid, interface{}, error) {
 // Caveat: as codedance (on github) pointed out, iteration order on a map is indeterminate. You can alternatively
 // use GetBulkArray to get the entries as a list, with deterministic iteration order.
 func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnGetBulkRequest, requestID, 0, maxRepetitions,
 			[]interface{}{Sequence,
@@ -299,10 +299,10 @@ func (w WapSNMP) GetBulk(oid Oid, maxRepetitions int) (map[string]interface{}, e
 	return result, nil
 }
 
-// Same as GetBulk, but returns it's results as a list, for those who want deterministic
+// GetBulkArray is the same as GetBulk, but returns it's results as a list, for those who want deterministic
 // iteration instead of convenient access.
 func (w WapSNMP) GetBulkArray(oid Oid, maxRepetitions int) ([]SNMPValue, error) {
-	requestID := getRandomRequestID()
+	requestID := RandomRequestID()
 	req, err := EncodeSequence([]interface{}{Sequence, int(w.Version), w.Community,
 		[]interface{}{AsnGetBulkRequest, requestID, 0, maxRepetitions,
 			[]interface{}{Sequence,
@@ -319,7 +319,7 @@ func (w WapSNMP) GetBulkArray(oid Oid, maxRepetitions int) ([]SNMPValue, error) 
 
 	decodedResponse, err := DecodeSequence(response[:numRead])
 	if err != nil {
-		return nil, fmt.Errorf("Error during sequence decoding : %v", err)
+		return nil, fmt.Errorf("error during sequence decoding: %v", err)
 	}
 
 	// Find the varbinds

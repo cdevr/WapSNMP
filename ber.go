@@ -93,7 +93,7 @@ const (
 // SNMPVersion is a type to indicate which SNMP version is in use.
 type SNMPVersion uint8
 
-// This will be the field if data couldn't be decoded.
+// UnsupportedBerType will be used if data couldn't be decoded.
 type UnsupportedBerType []byte
 
 // List of the supported snmp versions.
@@ -291,30 +291,30 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 		case AsnObjectID:
 			oid, err := DecodeOid(berValue)
 			if err != nil {
-				return nil, fmt.Errorf("Error decoding oid %v : %v", berValue, err)
+				return nil, fmt.Errorf("error decoding oid %v: %v", berValue, err)
 			}
 			result = append(result, *oid)
 		case AsnCounter32:
 			val, err := DecodeUInt(berValue)
 			if err != nil {
-				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
+				return nil, fmt.Errorf("error decoding integer %v: %v", berValue, err)
 			}
 			result = append(result, Counter(val))
 		case AsnGauge32:
 			val, err := DecodeUInt(berValue)
 			if err != nil {
-				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
+				return nil, fmt.Errorf("error decoding integer %v: %v", berValue, err)
 			}
 			result = append(result, Gauge(val))
 		case AsnTimeticks:
 			val, err := DecodeInteger(berValue)
 			if err != nil {
-				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
+				return nil, fmt.Errorf("error decoding integer %v: %v", berValue, err)
 			}
 			result = append(result, time.Duration(val)*10*time.Millisecond)
 		case AsnIpaddress:
 			if len(berValue) != 4 {
-				return nil, fmt.Errorf("Error decoding IP address %v : length is not 4", berValue)
+				return nil, fmt.Errorf("error decoding IP address %v: length is not 4", berValue)
 			}
 			result = append(result, net.IPv4(berValue[0], berValue[1], berValue[2], berValue[3]))
 		case Sequence:
@@ -330,7 +330,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 			}
 			result = append(result, pdu)
 		case NoSuchInstance:
-			return nil, fmt.Errorf("No such instance. Received bytes: %v", toparse)
+			return nil, fmt.Errorf("no such instance. Received bytes: %v", toparse)
 		case EndOfMibView:
 			result = append(result, EndOfMibView)
 		default:
@@ -417,11 +417,11 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 				toEncap = append(toEncap, b)
 			}
 		case net.IP:
-			val_ipv4 := val.To4()
-			if val_ipv4 == nil {
-				return nil, fmt.Errorf("Can only encode IPv4 addresses")
+			valIPv4 := val.To4()
+			if valIPv4 == nil {
+				return nil, fmt.Errorf("can only encode IPv4 addresses")
 			}
-			enc := []byte(val_ipv4)
+			enc := []byte(valIPv4)
 			toEncap = append(toEncap, byte(AsnIpaddress))
 			toEncap = append(toEncap, byte(len(enc)))
 			for _, b := range enc {

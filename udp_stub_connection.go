@@ -61,7 +61,7 @@ func (u *udpStub) Read(b []byte) (n int, err error) {
 	if len(u.queuedPackets) > 0 {
 		val, err := hex.DecodeString(u.queuedPackets[0])
 		if err != nil {
-			u.t.Fatalf("Error while decoding expected packet : '%v'", err)
+			u.t.Fatalf("Error while decoding expected packet: '%v'", err)
 		}
 
 		for idx, vb := range val {
@@ -90,7 +90,7 @@ func (u *udpStub) Write(b []byte) (n int, err error) {
 		u.expectResponses = u.expectResponses[1:]
 	} else {
 		if !u.ignoreUnknownPackets {
-			u.t.Errorf("Error : received  '%v'\n        expected '%v'", realPacket, expectedPacket)
+			u.t.Errorf("error: received  '%v'\n        expected '%v'", realPacket, expectedPacket)
 		}
 	}
 

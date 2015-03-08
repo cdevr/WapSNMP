@@ -119,11 +119,11 @@ func TestGet(t *testing.T) {
 	val, err := wsnmp.Get(oid)
 
 	if err != nil {
-		t.Errorf("Error testing to get a value : %v.", err)
+		t.Errorf("Error testing to get a value: %v.", err)
 	}
 
 	if val != time.Duration(76705700)*10*time.Millisecond {
-		t.Errorf("Received wrong value : %v", val)
+		t.Errorf("Received wrong value: %v", val)
 	}
 }
 
@@ -147,7 +147,7 @@ func TestGetTable(t *testing.T) {
 	val, err := wsnmp.GetTable(oid)
 
 	if err != nil {
-		t.Fatalf("Error testing to get a table : %v.", err)
+		t.Fatalf("Error testing to get a table: %v.", err)
 	}
 
 	gValue, ok := val[".1.3.6.1.2.1.2.2.1.21.646"].(Gauge)
