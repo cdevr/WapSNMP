@@ -30,16 +30,16 @@ import (
 type BERType uint8
 
 // Counter is a type to distinguish Counter32 from just an int.
-type Counter int
+type Counter uint32
 
 // Counter64 is a type to distinguish Counter64 from just an int.
-type Counter64 int
+type Counter64 uint64
 
 // Gauge is a type to distinguish Gauge32 from just an int.
-type Gauge int
+type Gauge uint32
 
 // Gauge64 is a type to distinguish Gauge64 from just an int.
-type Gauge64 int
+type Gauge64 uint64
 
 // Constants for the different types of the TLV fields.
 const (
@@ -103,7 +103,7 @@ const (
 )
 
 // EncodeLength encodes an integer value as a BER compliant length value.
-func EncodeLength(length int) []byte {
+func EncodeLength(length uint64) []byte {
 	// The first bit is used to indicate whether this is the final byte
 	// encoding the length. So, if the first bit is 0, just return a one
 	// byte response containing the byte-encoded length.
@@ -119,7 +119,7 @@ func EncodeLength(length int) []byte {
 	// specified in a 127-byte encoded integer, however, going out on a limb
 	// here, I don't think I'm going to support a use case that insane.
 
-	r := EncodeInteger(length)
+	r := EncodeUInt(length)
 	numOctets := len(r)
 	result := make([]byte, 1+numOctets)
 	result[0] = 0x80 | byte(numOctets)
@@ -133,14 +133,14 @@ func EncodeLength(length int) []byte {
 //
 // Caveats: Does not support indefinite length. Couldn't find any
 // SNMP packet dump actually using that.
-func DecodeLength(toparse []byte) (int, int, error) {
+func DecodeLength(toparse []byte) (uint64, int, error) {
 	// If the first bit is zero, the rest of the first byte indicates the length. Values up to 127 are encoded this way (unless you're using indefinite length, but we don't support that)
 
 	if toparse[0] == 0x80 {
 		return 0, 0, fmt.Errorf("we don't support indefinite length encoding")
 	}
 	if toparse[0]&0x80 == 0 {
-		return int(toparse[0]), 1, nil
+		return uint64(toparse[0]), 1, nil
 	}
 
 	// If the first bit is one, the rest of the first byte encodes the length of then encoded length. So read how many bytes are part of the length.
@@ -151,7 +151,7 @@ func DecodeLength(toparse []byte) (int, int, error) {
 
 	// Decode the specified number of bytes as a BER Integer encoded
 	// value.
-	val, err := DecodeInteger(toparse[1 : numOctets+1])
+	val, err := DecodeUInt(toparse[1 : numOctets+1])
 	if err != nil {
 		return 0, 0, err
 	}
@@ -162,30 +162,77 @@ func DecodeLength(toparse []byte) (int, int, error) {
 // DecodeInteger decodes an integer.
 //
 // Will error out if it's longer than 64 bits.
-func DecodeInteger(toparse []byte) (int, error) {
+func DecodeInteger(toparse []byte) (int64, error) {
 	if len(toparse) > 8 {
 		return 0, fmt.Errorf("don't support more than 64 bits")
 	}
-	val := 0
+	var val int64
 	for _, b := range toparse {
-		val = val*256 + int(b)
+		val = val<<8 | int64(b)
+	}
+	// Extend sign if necessary.
+	val <<= 64 - uint8(len(toparse))*8
+	val >>= 64 - uint8(len(toparse))*8
+	return val, nil
+}
+
+// DecodeUInt decodes an unsigned int.
+//
+// Will error out if it's longer than 64 bits.
+func DecodeUInt(toparse []byte) (uint64, error) {
+	if len(toparse) > 8 {
+		return 0, fmt.Errorf("don't support more than 64 bits")
+	}
+	var val uint64
+	for _, b := range toparse {
+		val = val<<8 | uint64(b)
 	}
 	return val, nil
 }
 
 // EncodeInteger encodes an integer to BER format.
-func EncodeInteger(toEncode int) []byte {
+func EncodeInteger(toEncode int64) []byte {
 	// Calculate the length we'll need for the encoded value.
-	l := 1
-	i := toEncode
-	for i > 255 {
-		i = i >> 8
+	var l int64 = 1
+	if toEncode > 0 {
+		for i := toEncode; i > 255; i >>= 8 {
+			l++
+		}
+	} else {
+		for i := -toEncode; i > 255; i >>= 8 {
+			l++
+		}
+		// Ensure room for the sign if necessary.
+		if toEncode < 0 {
+			l++
+		}
+	}
+
+	// Now create a byte array of the correct length and copy the value into it.
+	result := make([]byte, l)
+	for i := int64(0); i < l; i++ {
+		result[i] = byte(toEncode >> uint(8*(l-i-1)))
+	}
+	/*
+		// Chop off superfluous 0xff's.
+		s := 0
+		for ; s+1 < len(result) && result[s] == 0xff && result[s+1] == 0xff; s++ {
+		}
+		return result[s:]*/
+	return result
+}
+
+// EncodeUInt encodes an unsigned integer to BER format.
+func EncodeUInt(toEncode uint64) []byte {
+	// Calculate the length we'll need for the encoded value.
+	var l int64 = 1
+	for i := toEncode; i > 255; i >>= 8 {
 		l++
 	}
 
 	// Now create a byte array of the correct length and copy the value into it.
 	result := make([]byte, l)
-	for i = 0; i < l; i++ {
+	for i := int64(0); i < l; i++ {
 		result[i] = byte(toEncode >> uint(8*(l-i-1)))
 	}
 	return result
@@ -222,12 +269,12 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("length parse error @ idx %v", idx)
 		}
-		berValue := toparse[idx+1+berLenLen : idx+1+berLenLen+berLength]
-		berAll := toparse[idx : idx+1+berLenLen+berLength]
+		berValue := toparse[idx+1+berLenLen : idx+1+berLenLen+int(berLength)]
+		berAll := toparse[idx : idx+1+berLenLen+int(berLength)]
 
 		switch BERType(berType) {
 		case AsnBoolean:
-			if berLength != 1 {
+			if int(berLength) != 1 {
 				return nil, fmt.Errorf("boolean length != 1 @ idx %v", idx)
 			}
 			result = append(result, berValue[0] == 0)
@@ -248,13 +295,13 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 			}
 			result = append(result, *oid)
 		case AsnCounter32:
-			val, err := DecodeInteger(berValue)
+			val, err := DecodeUInt(berValue)
 			if err != nil {
 				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
 			result = append(result, Counter(val))
 		case AsnGauge32:
-			val, err := DecodeInteger(berValue)
+			val, err := DecodeUInt(berValue)
 			if err != nil {
 				return nil, fmt.Errorf("Error decoding integer %v : %v", berValue, err)
 			}
@@ -291,7 +338,7 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 		}
 
 		lidx = idx
-		idx = idx + 1 + berLenLen + berLength
+		idx = idx + 1 + berLenLen + int(berLength)
 	}
 
 	return result, nil
@@ -316,6 +363,14 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 			toEncap = append(toEncap, byte(AsnNull))
 			toEncap = append(toEncap, 0)
 		case int:
+			enc := EncodeInteger(int64(val))
+			// TODO encode length ?
+			toEncap = append(toEncap, byte(AsnInteger))
+			toEncap = append(toEncap, byte(len(enc)))
+			for _, b := range enc {
+				toEncap = append(toEncap, b)
+			}
+		case int64:
 			enc := EncodeInteger(val)
 			// TODO encode length ?
 			toEncap = append(toEncap, byte(AsnInteger))
@@ -324,7 +379,7 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 				toEncap = append(toEncap, b)
 			}
 		case Counter:
-			enc := EncodeInteger(int(val))
+			enc := EncodeUInt(uint64(val))
 			// TODO encode length ?
 			toEncap = append(toEncap, byte(AsnCounter32))
 			toEncap = append(toEncap, byte(len(enc)))
@@ -332,7 +387,7 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 				toEncap = append(toEncap, b)
 			}
 		case Gauge:
-			enc := EncodeInteger(int(val))
+			enc := EncodeUInt(uint64(val))
 			// TODO encode length ?
 			toEncap = append(toEncap, byte(AsnGauge32))
 			toEncap = append(toEncap, byte(len(enc)))
@@ -342,7 +397,7 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 		case string:
 			enc := []byte(val)
 			toEncap = append(toEncap, byte(AsnOctetStr))
-			for _, b := range EncodeLength(len(enc)) {
+			for _, b := range EncodeLength(uint64(len(enc))) {
 				toEncap = append(toEncap, b)
 			}
 			for _, b := range enc {
@@ -354,7 +409,7 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 				return nil, err
 			}
 			toEncap = append(toEncap, byte(AsnObjectID))
-			encLen := EncodeLength(len(enc))
+			encLen := EncodeLength(uint64(len(enc)))
 			for _, b := range encLen {
 				toEncap = append(toEncap, b)
 			}
@@ -383,7 +438,7 @@ func EncodeSequence(toEncode []interface{}) ([]byte, error) {
 		}
 	}
 
-	l := EncodeLength(len(toEncap))
+	l := EncodeLength(uint64(len(toEncap)))
 	// Encode length ...
 	result := []byte{byte(seqType)}
 	for _, b := range l {

@@ -10,14 +10,14 @@ import (
 
 type Counter32Test struct {
 	Encoded  []byte
-	Expected int
+	Expected int64
 }
 
 func TestCounter32Decoding(t *testing.T) {
 	tests := []Counter32Test{
-		Counter32Test{[]byte{0x04, 0x50, 0xd8}, 282840},
-		Counter32Test{[]byte{0x04, 0xc8}, 1224},
-		Counter32Test{[]byte{0x56, 0x60, 0x60, 0xeb}, 1449156843},
+		{[]byte{0x04, 0x50, 0xd8}, 282840},
+		{[]byte{0x04, 0xc8}, 1224},
+		{[]byte{0x56, 0x60, 0x60, 0xeb}, 1449156843},
 	}
 
 	for _, test := range tests {
@@ -33,18 +33,18 @@ func TestCounter32Decoding(t *testing.T) {
 
 type LengthTest struct {
 	Encoded      []byte
-	Length       int
+	Length       uint64
 	LengthLength int // This is the length of the encoded length, as derived from the encoded value
 }
 
 func TestLengthDecodingEncoding(t *testing.T) {
 	tests := []LengthTest{
-		LengthTest{[]byte{0x26}, 38, 1},
-		LengthTest{[]byte{0x81, 0xc9}, 201, 2},
-		LengthTest{[]byte{0x81, 0xca}, 202, 2},
-		LengthTest{[]byte{0x81, 0x9f}, 159, 2},
-		LengthTest{[]byte{0x82, 0x01, 0x70}, 368, 3},
-		LengthTest{[]byte{0x81, 0xe3}, 227, 2},
+		{[]byte{0x26}, 38, 1},
+		{[]byte{0x81, 0xc9}, 201, 2},
+		{[]byte{0x81, 0xca}, 202, 2},
+		{[]byte{0x81, 0x9f}, 159, 2},
+		{[]byte{0x82, 0x01, 0x70}, 368, 3},
+		{[]byte{0x81, 0xe3}, 227, 2},
 	}
 
 	for _, test := range tests {
@@ -62,10 +62,12 @@ func TestLengthDecodingEncoding(t *testing.T) {
 }
 
 func TestDecodeEncodeInteger(t *testing.T) {
-	tests := map[int][]byte{
-		3:          []byte{0x03},
-		523:        []byte{0x02, 0x0b},
-		1191105458: []byte{0x46, 0xfe, 0xd3, 0xb2},
+	tests := map[int64][]byte{
+		3:          {0x03},
+		523:        {0x02, 0x0b},
+		1191105458: {0x46, 0xfe, 0xd3, 0xb2},
+		-91:        {0xff, 0xa5},
+		-654854:    {0xff, 0xf6, 0x01, 0xfa},
 	}
 
 	for testValue, testEncode := range tests {
@@ -94,14 +96,14 @@ type SequenceTest struct {
 
 func TestSequenceDecoding(t *testing.T) {
 	SequenceTests := []SequenceTest{
-		SequenceTest{"3003020100", []interface{}{Sequence, 0}},
-		SequenceTest{"300804067075626c6963", []interface{}{Sequence, "public"}},
-		SequenceTest{"300b04067075626c6963020100", []interface{}{Sequence, "public", 0}},
-		SequenceTest{"3013060b2b060102010202010a84234104566060eb", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.10.547"), Counter(1449156843)}},
-		SequenceTest{"300f060a2b060102010202010508420100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.8"), Gauge(0)}},
-		SequenceTest{"3012060a2b0601020102020105344204ffffffff", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.52"), Gauge(4294967295)}},
-		SequenceTest{"300f060a2b060102010202011601060100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.22.1"), MustParseOid("0.0")}},
-		SequenceTest{"3006400401020304", []interface{}{Sequence, net.ParseIP("1.2.3.4")}},
+		{"3003020100", []interface{}{Sequence, int64(0)}},
+		{"300804067075626c6963", []interface{}{Sequence, "public"}},
+		{"300b04067075626c6963020100", []interface{}{Sequence, "public", int64(0)}},
+		{"3013060b2b060102010202010a84234104566060eb", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.10.547"), Counter(1449156843)}},
+		{"300f060a2b060102010202010508420100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.8"), Gauge(0)}},
+		{"3012060a2b0601020102020105344204ffffffff", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.5.52"), Gauge(4294967295)}},
+		{"300f060a2b060102010202011601060100", []interface{}{Sequence, MustParseOid("1.3.6.1.2.1.2.2.1.22.1"), MustParseOid("0.0")}},
+		{"3006400401020304", []interface{}{Sequence, net.ParseIP("1.2.3.4")}},
 	}
 
 	for _, test := range SequenceTests {
@@ -114,7 +116,7 @@ func TestSequenceDecoding(t *testing.T) {
 			t.Fatalf("Error while decoding %v => %v", hex.EncodeToString(encodedBytes), err)
 		}
 		if !reflect.DeepEqual(result, test.Decoded) {
-			t.Fatalf("Not decoded as expected. Encoded : %v\nExpected: %v\nResult  : %v", hex.EncodeToString(encodedBytes), test.Decoded, result)
+			t.Errorf("Not decoded as expected. Encoded : %v\nExpected: %v\nResult  : %v", hex.EncodeToString(encodedBytes), test.Decoded, result)
 		}
 	}
 
