@@ -29,6 +29,28 @@ func TestCounter32Decoding(t *testing.T) {
 	}
 }
 
+func TestCounter64Decoding(t *testing.T) {
+	tests := []struct {
+		input []byte
+		want  uint64
+	}{
+		{[]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}, 72623859790382856},
+		{[]byte{0xde, 0xad, 0xbe, 0xef, 0xca, 0xfe, 0xff}, 62678480408215295},
+		{[]byte{0x13, 0x37, 0xca, 0xfe, 0xbe, 0xef}, 21130349821679},
+		{[]byte{0x05, 0x04, 0x03, 0x02, 0x01}, 21542142465},
+	}
+
+	for _, test := range tests {
+		value, err := DecodeUInt(test.input)
+		if err != nil {
+			t.Errorf("Decoding %v led to error %v", test.input, err)
+		}
+		if value != test.want {
+			t.Errorf("Counter64 not decoded correctly DecodeUInt(%v) => %v, want %v", test.input, value, test.want)
+		}
+	}
+}
+
 func TestLengthDecodingEncoding(t *testing.T) {
 	tests := []struct {
 		input     []byte
