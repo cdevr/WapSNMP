@@ -300,6 +300,12 @@ func DecodeSequence(toparse []byte) ([]interface{}, error) {
 				return nil, fmt.Errorf("error decoding integer %v: %v", berValue, err)
 			}
 			result = append(result, Counter(val))
+		case AsnCounter64:
+			val, err := DecodeUInt(berValue)
+			if err != nil {
+				return nil, fmt.Errorf("error decoding integer %v: %v", berValue, err)
+			}
+			result = append(result, Counter64(val))
 		case AsnGauge32:
 			val, err := DecodeUInt(berValue)
 			if err != nil {
