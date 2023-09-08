@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -15,7 +16,8 @@ var retries = flag.Int("retries", 5, "how many times to retry sending a packet b
 var refresh = flag.Duration("refresh", 3*time.Second, "how often to refresh")
 
 var (
-	ifDescr = wapSnmp.MustParseOid(".1.3.6.1.2.1.2.2.1.2")
+	sysDescrOid = wapSnmp.MustParseOid(".1.3.6.1.2.1.1.1")
+	ifDescrOid  = wapSnmp.MustParseOid(".1.3.6.1.2.1.2.2.1.2")
 )
 
 func doGetInterfaces() {
@@ -24,12 +26,20 @@ func doGetInterfaces() {
 		log.Fatalf("failed to connect device: %v", err)
 	}
 
-	table, err := ws.GetTable(ifDescr)
+	sysDescr, err := ws.Get(sysDescrOid)
+	if err != nil {
+		log.Fatalf("failed to get system description from device: %v", err)
+	}
+
+	table, err := ws.GetTable(ifDescrOid)
 	if err != nil {
 		log.Fatalf("failed to get interfaces name table: %v", err)
 	}
 
-	_ = table
+	fmt.Printf("system name: %q", sysDescr)
+	for k, v := range table {
+		fmt.Printf("%v => %v", k, v)
+	}
 }
 
 func main() {
