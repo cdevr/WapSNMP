@@ -4,8 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/cdevr/WapSNMP"
 	"time"
+
+	wapSnmp "github.com/cdevr/WapSNMP"
 )
 
 var target = flag.String("target", "", "The host to connect to")
